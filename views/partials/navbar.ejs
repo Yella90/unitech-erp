@@ -1,0 +1,46 @@
+<header class="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur">
+  <div class="flex items-center justify-between px-4 py-3 sm:px-6">
+    <div class="flex items-center gap-3">
+      <button id="sidebar-toggle" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 lg:hidden" type="button" aria-label="Toggle sidebar">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div>
+        <h1 class="text-lg font-semibold text-slate-900"><%= pageTitle || 'Dashboard' %></h1>
+        <p class="text-xs text-slate-500">Plan: <%= currentPlan || 'basic' %></p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <% if (schoolYears && schoolYears.length) { %>
+        <form method="POST" action="/annee-scolaire" class="hidden sm:block">
+          <input type="hidden" name="redirect_to" value="<%= typeof requestPath !== 'undefined' ? requestPath : '' %>">
+          <label class="sr-only" for="school-year-select">Annee scolaire</label>
+          <select id="school-year-select" name="school_year" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700" onchange="this.form.submit()">
+            <% schoolYears.forEach((sy) => { %>
+              <option value="<%= sy %>" <%= activeSchoolYear === sy ? 'selected' : '' %>><%= sy %></option>
+            <% }) %>
+          </select>
+        </form>
+      <% } %>
+
+      <div class="relative">
+        <button id="profile-toggle" type="button" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+          <span class="grid h-8 w-8 place-items-center rounded-lg bg-indigo-100 text-indigo-700 font-bold"><%= (currentUser && currentUser.role ? currentUser.role[0].toUpperCase() : 'U') %></span>
+          <span class="hidden sm:inline"><%= currentUser && currentUser.role ? currentUser.role : 'User' %></span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div id="profile-menu" class="invisible absolute right-0 mt-2 w-56 origin-top-right rounded-xl border border-slate-200 bg-white p-2 opacity-0 shadow-lg transition">
+          <% if (activeSchoolYear) { %>
+            <p class="px-3 py-2 text-xs text-slate-500">Annee active: <strong><%= activeSchoolYear %></strong></p>
+          <% } %>
+          <a href="/vitrine" class="menu-item">Voir la vitrine</a>
+          <a href="/administration" class="menu-item">Profil ecole</a>
+          <a href="/rapports" class="menu-item">Rapports</a>
+          <form action="/auth/logout" method="POST">
+            <button class="menu-item w-full text-left text-rose-600" type="submit">Deconnexion</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,14 @@
+<section class="space-y-5">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-sm text-slate-500">Liste des classes de l'ecole</p>
+    <a href="/classes/add" class="btn btn-primary sm:w-auto w-full">Nouvelle classe</a>
+  </div>
+
+  <%- include('../partials/table', {
+    tableTitle: 'Gestion des classes',
+    headers: ['Nom', 'Cycle', 'Niveau', 'Annee', 'Mensualite', 'Frais inscription', 'Effectif', 'Effectif max', 'Actions'],
+    rows: classes || [],
+    rowPartial: '../partials/rows/classes-row',
+    emptyText: 'Aucune classe disponible.'
+  }) %>
+</section>

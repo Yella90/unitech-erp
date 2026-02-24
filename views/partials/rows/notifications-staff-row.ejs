@@ -1,0 +1,11 @@
+<tr class="transition hover:bg-slate-50/70">
+  <td class="px-5 py-3 font-medium text-slate-700"><%= row.type || '-' %></td>
+  <td class="px-5 py-3"><%= row.matricule || '-' %></td>
+  <td class="px-5 py-3"><%= row.nom || '-' %></td>
+  <td class="px-5 py-3"><%= row.poste || '-' %></td>
+  <td class="px-5 py-3"><%= row.type_payement || '-' %></td>
+  <td class="px-5 py-3"><%= row.montant_mensuel || 0 %> FCFA</td>
+  <td class="px-5 py-3"><%= row.total_paye || 0 %> FCFA</td>
+  <td class="px-5 py-3"><%= row.total_du || 0 %> FCFA</td>
+  <td class="px-5 py-3 font-semibold <%= row.reste > 0 ? 'text-rose-600' : 'text-emerald-600' %>"><%= row.reste || 0 %> FCFA</td>
+</tr>

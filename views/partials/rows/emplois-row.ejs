@@ -1,0 +1,13 @@
+<tr class="transition hover:bg-slate-50/70">
+  <td class="px-5 py-3"><%= row.classe || '-' %></td>
+  <td class="px-5 py-3"><%= row.jour || '-' %></td>
+  <td class="px-5 py-3"><%= row.heure_debut || '-' %> - <%= row.heure_fin || '-' %></td>
+  <td class="px-5 py-3"><%= row.matiere || '-' %></td>
+  <td class="px-5 py-3"><%= row.enseignant_nom || row.enseignant_matricule || '-' %></td>
+  <td class="px-5 py-3 text-right">
+    <a class="btn btn-secondary btn-sm" href="/emplois/edit/<%= row.id %>">Modifier</a>
+    <form method="POST" action="/emplois/delete/<%= row.id %>" class="inline" data-confirm="Supprimer ce creneau ?">
+      <button class="btn btn-danger btn-sm" type="submit">Supprimer</button>
+    </form>
+  </td>
+</tr>

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNITECH ERP - Landing Page</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link href="/css/output.css" rel="stylesheet">
+  <style>
+    :root {
+      --brand-blue: #1E3A8A;
+      --brand-orange: #F97316;
+      --bg-light: #F3F4F6;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg-light); }
+
+    .landing-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #0f172a, #1E3A8A);
+      transition: opacity .45s ease, visibility .45s ease;
+    }
+    .landing-loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    .loader-mark {
+      display: grid;
+      place-items: center;
+      width: 78px;
+      height: 78px;
+      border-radius: 18px;
+      font-weight: 900;
+      color: white;
+      background: rgba(255,255,255,.16);
+      border: 1px solid rgba(255,255,255,.35);
+      box-shadow: 0 16px 50px rgba(0,0,0,.35);
+      animation: loaderPulse 1.1s ease-in-out infinite alternate;
+    }
+    @keyframes loaderPulse {
+      from { transform: scale(.95); }
+      to { transform: scale(1.04); }
+    }
+
+    .smart-nav {
+      transition: padding .25s ease, box-shadow .25s ease, background-color .25s ease;
+    }
+    .smart-nav.scrolled {
+      box-shadow: 0 8px 30px rgba(15, 23, 42, .1);
+      background: rgba(255, 255, 255, 0.98);
+    }
+
+    .hero-shell {
+      background: linear-gradient(130deg, #0f172a, #1E3A8A, #1e40af, #0f172a);
+      background-size: 280% 280%;
+      animation: gradientShift 22s ease infinite;
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .hero-network {
+      position: absolute;
+      inset: 0;
+      opacity: .22;
+      pointer-events: none;
+    }
+    .hero-network path {
+      stroke-dasharray: 12 10;
+      animation: pathMove 14s linear infinite;
+    }
+    @keyframes pathMove {
+      from { stroke-dashoffset: 0; }
+      to { stroke-dashoffset: 220; }
+    }
+
+    .hero-anim {
+      opacity: 0;
+      transform: translateY(26px);
+      animation: heroIn .75s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    .hero-anim.delay-1 { animation-delay: .18s; }
+    .hero-anim.delay-2 { animation-delay: .34s; }
+    .hero-anim.delay-3 { animation-delay: .52s; }
+    @keyframes heroIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity .65s ease, transform .65s ease;
+    }
+    .reveal.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal.zoom {
+      transform: scale(.96);
+    }
+    .reveal.zoom.show {
+      transform: scale(1);
+    }
+
+    .feature-card {
+      transition: transform .26s ease, box-shadow .26s ease, border-color .26s ease;
+      border: 1px solid transparent;
+    }
+    .feature-card:hover {
+      transform: translateY(-7px);
+      box-shadow: 0 18px 42px rgba(15, 23, 42, .16);
+      border-color: rgba(30, 58, 138, .2);
+    }
+    .feature-icon {
+      transition: color .25s ease, background-color .25s ease;
+    }
+    .feature-card:hover .feature-icon {
+      color: white;
+      background-color: var(--brand-orange);
+    }
+
+    .price-card {
+      position: relative;
+      transition: transform .26s ease, box-shadow .26s ease;
+    }
+    .price-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 18px 48px rgba(15, 23, 42, .18);
+    }
+    .price-card.recommended {
+      border: 2px solid rgba(249, 115, 22, .55);
+      transform: translateY(-8px);
+    }
+    .price-card.recommended::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: 14px;
+      border: 2px solid rgba(249, 115, 22, .35);
+      animation: borderGlow 2.2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes borderGlow {
+      0%, 100% { opacity: .35; }
+      50% { opacity: .9; }
+    }
+    .pulse-btn {
+      animation: softPulse 1.9s ease-in-out infinite;
+    }
+    @keyframes softPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, .3); }
+      70% { box-shadow: 0 0 0 12px rgba(249, 115, 22, 0); }
+    }
+
+    .cta-btn {
+      position: relative;
+      overflow: hidden;
+      transition: transform .2s ease, background-color .2s ease;
+    }
+    .cta-btn:hover {
+      transform: scale(1.03);
+      background-color: var(--brand-orange);
+    }
+    .cta-btn::after {
+      content: "";
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      transform: scale(0);
+      background: rgba(255,255,255,.36);
+      left: var(--rx, 50%);
+      top: var(--ry, 50%);
+      transition: transform .45s ease, opacity .45s ease;
+      opacity: 0;
+    }
+    .cta-btn.ripple::after {
+      transform: scale(26);
+      opacity: 1;
+      transition: transform .5s ease, opacity .7s ease;
+    }
+
+    .counter {
+      font-variant-numeric: tabular-nums;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+      .hero-anim { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body class="text-slate-800">
+  <div id="landing-loader" class="landing-loader">
+    <div class="loader-mark">U</div>
+  </div>
+
+  <header id="smart-nav" class="smart-nav sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+      <a href="/vitrine" class="flex items-center gap-3">
+        <div class="grid h-10 w-10 place-items-center rounded-xl bg-[#1E3A8A] text-white font-black">U</div>
+        <div>
+          <p class="text-xs uppercase tracking-[0.22em] text-slate-500">UNITECH</p>
+          <p class="text-sm font-bold text-[#1E3A8A]">ERP SaaS</p>
+        </div>
+      </a>
+      <nav class="hidden gap-5 text-sm font-medium text-slate-600 md:flex">
+        <a href="/entreprise" class="hover:text-[#1E3A8A]">Entreprise</a>
+        <a href="#vision" class="hover:text-[#1E3A8A]">Vision</a>
+        <a href="#features" class="hover:text-[#1E3A8A]">Fonctionnalites</a>
+        <a href="#roles" class="hover:text-[#1E3A8A]">Utilisateurs</a>
+        <a href="#pricing" class="hover:text-[#1E3A8A]">Tarifs</a>
+      </nav>
+      <div class="flex items-center gap-2">
+        <a href="/entreprise" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Entreprise</a>
+        <% if (currentUser && currentUser.role === 'superadmin') { %>
+          <a href="/admin/dashboard" class="cta-btn rounded-xl bg-[#1E3A8A] px-3 py-2 text-xs font-semibold text-white">Dashboard Admin</a>
+        <% } else if (currentUser && (currentUser.role === 'school_admin' || currentUser.role === 'staff')) { %>
+          <a href="/dashboard" class="cta-btn rounded-xl bg-[#1E3A8A] px-3 py-2 text-xs font-semibold text-white">Mon Tableau de Bord</a>
+        <% } else { %>
+          <a href="/login" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Connexion</a>
+          <a href="/register" class="cta-btn rounded-xl bg-[#F97316] px-3 py-2 text-xs font-semibold text-white">Creer un etablissement</a>
+        <% } %>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero-shell relative overflow-hidden">
+      <svg class="hero-network" viewBox="0 0 1200 420" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,200 C140,150 220,250 340,200 C460,150 560,260 700,210 C840,160 980,250 1200,180" fill="none" stroke="white" stroke-width="1.2"/>
+        <path d="M0,270 C160,210 260,320 380,260 C500,200 640,320 760,250 C880,180 1020,280 1200,230" fill="none" stroke="white" stroke-width="1"/>
+      </svg>
+      <div class="absolute -top-16 -right-16 h-64 w-64 rounded-full bg-[#F97316]/20 blur-3xl"></div>
+      <div class="absolute -bottom-20 -left-10 h-72 w-72 rounded-full bg-white/10 blur-3xl"></div>
+
+      <div class="relative mx-auto grid max-w-7xl gap-10 px-4 py-20 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+        <div class="text-white">
+          <p class="hero-anim mb-4 inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
+            UNITECH ERP
+          </p>
+          <h1 class="hero-anim delay-1 text-4xl font-black leading-tight md:text-5xl">
+            Solution ERP Intelligente pour Etablissements Modernes
+          </h1>
+          <p class="hero-anim delay-2 mt-5 max-w-2xl text-base text-slate-200 md:text-lg">
+            Gestion scolaire, abonnements, maintenance et solutions technologiques integrees.
+          </p>
+          <div class="hero-anim delay-3 mt-8 flex flex-wrap gap-3">
+            <a href="/register" class="cta-btn rounded-xl bg-[#F97316] px-5 py-3 text-sm font-bold text-white shadow-lg">Creer un etablissement</a>
+            <a href="/login" class="cta-btn rounded-xl border border-white/30 px-5 py-3 text-sm font-bold text-white hover:bg-white/10">Se connecter</a>
+            <a href="/admin/login" class="cta-btn rounded-xl border border-white/30 px-5 py-3 text-sm font-bold text-white hover:bg-white/10">Espace Admin</a>
+          </div>
+        </div>
+
+        <div class="reveal rounded-2xl bg-white/95 p-5 shadow-2xl">
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">ERP SaaS International</p>
+          <h2 class="mt-2 text-2xl font-extrabold text-[#1E3A8A]">Plateforme unifiee</h2>
+          <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div class="rounded-xl bg-slate-50 p-3"><p class="text-slate-500">Ecoles</p><p class="counter text-xl font-bold text-[#1E3A8A]" data-counter-target="<%= Number(metrics && metrics.totalSchools ? metrics.totalSchools : 0) %>">0+</p></div>
+            <div class="rounded-xl bg-slate-50 p-3"><p class="text-slate-500">Eleves</p><p class="counter text-xl font-bold text-[#1E3A8A]" data-counter-target="<%= Number(metrics && metrics.totalEleves ? metrics.totalEleves : 0) %>">0+</p></div>
+            <div class="rounded-xl bg-slate-50 p-3"><p class="text-slate-500">Satisfaction</p><p class="counter text-xl font-bold text-[#1E3A8A]" data-counter-target="<%= Number(metrics && Number.isFinite(metrics.satisfaction) ? metrics.satisfaction : 0) %>" data-counter-suffix="%">0%</p></div>
+            <div class="rounded-xl bg-slate-50 p-3"><p class="text-slate-500">Disponibilite</p><p class="counter text-xl font-bold text-[#1E3A8A]" data-counter-target="<%= Number(metrics && Number.isFinite(metrics.disponibilite) ? metrics.disponibilite : 0) %>" data-counter-suffix="%">0%</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-7xl px-4 py-10">
+      <div class="reveal rounded-2xl bg-white p-6 shadow-lg">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-black text-[#1E3A8A]">Essentiel a savoir avant de commencer</h2>
+            <p class="mt-1 text-sm text-slate-600">Ces informations sont les plus consultees par les nouveaux visiteurs.</p>
+          </div>
+          <a href="#pricing" class="cta-btn rounded-xl bg-[#F97316] px-4 py-2 text-xs font-semibold text-white">Voir les tarifs</a>
+        </div>
+
+        <div class="mt-5 grid gap-4 lg:grid-cols-2">
+          <article class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <h3 class="font-semibold text-[#1E3A8A]">Fonctionnalites principales</h3>
+            <ul class="mt-3 space-y-1 text-sm text-slate-700">
+              <li>Gestion eleves, classes, enseignants, matieres et absences</li>
+              <li>Notes, bulletins PDF, paiements scolaires, depenses et salaires</li>
+              <li>Emplois du temps, affectations, dashboard et rapports</li>
+              <li>Setup assiste, import Excel et OCR selon le plan</li>
+            </ul>
+          </article>
+
+          <article class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <h3 class="font-semibold text-emerald-800">Plan annuel avec reduction</h3>
+            <%
+              const byCode = {};
+              (plans || []).forEach((p) => { byCode[String(p.code || '').toLowerCase()] = p; });
+              const pb = byCode.basic || {};
+              const ps = byCode.pro || {};
+              const pp = byCode.premium || {};
+              const ecoB = Math.max((Number(pb.price_monthly || 0) * 12) - Number(pb.price_annual || 0), 0);
+              const ecoS = Math.max((Number(ps.price_monthly || 0) * 12) - Number(ps.price_annual || 0), 0);
+              const ecoP = Math.max((Number(pp.price_monthly || 0) * 12) - Number(pp.price_annual || 0), 0);
+            %>
+            <ul class="mt-3 space-y-1 text-sm text-emerald-900">
+              <li>Basic: <strong><%= Number(pb.price_annual || 0).toLocaleString('fr-FR') %> FCFA/an</strong> (economie <%= ecoB.toLocaleString('fr-FR') %> FCFA)</li>
+              <li>Smart: <strong><%= Number(ps.price_annual || 0).toLocaleString('fr-FR') %> FCFA/an</strong> (economie <%= ecoS.toLocaleString('fr-FR') %> FCFA)</li>
+              <li>Premium: <strong><%= Number(pp.price_annual || 0).toLocaleString('fr-FR') %> FCFA/an</strong> (economie <%= ecoP.toLocaleString('fr-FR') %> FCFA)</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="vision" class="mx-auto max-w-7xl px-4 py-16">
+      <div class="reveal rounded-2xl bg-white p-8 shadow-lg">
+        <h2 class="text-3xl font-black text-[#1E3A8A]">Notre Vision</h2>
+        <p class="mt-4 max-w-4xl text-slate-600">
+          UNITECH est une entreprise technologique moderne specialisee dans les solutions digitales, la maintenance industrielle,
+          la formation technique et l'innovation en mecatronique. Nous construisons des outils fiables, scalables et orientes impact,
+          avec un accompagnement client fort, une expertise technique de terrain et une approche d'innovation continue.
+        </p>
+        <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-xl bg-slate-50 p-4"><p class="font-semibold text-[#1E3A8A]">Fiabilite</p></div>
+          <div class="rounded-xl bg-slate-50 p-4"><p class="font-semibold text-[#1E3A8A]">Innovation</p></div>
+          <div class="rounded-xl bg-slate-50 p-4"><p class="font-semibold text-[#1E3A8A]">Expertise technique</p></div>
+          <div class="rounded-xl bg-slate-50 p-4"><p class="font-semibold text-[#1E3A8A]">Accompagnement client</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="mx-auto max-w-7xl px-4 pb-16">
+      <h2 class="reveal text-3xl font-black text-[#1E3A8A]">Fonctionnalites ERP</h2>
+      <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <% const features = ['Gestion eleves','Gestion classes','Gestion enseignants','Paiements & finances','Statistiques intelligentes','Gestion abonnements','Acces multi-roles','Securite des donnees']; %>
+        <% features.forEach((f, idx) => { %>
+          <article class="feature-card reveal rounded-xl bg-white p-5 shadow-lg" data-reveal-delay="<%= idx * 70 %>">
+            <div class="feature-icon mb-3 grid h-10 w-10 place-items-center rounded-lg bg-[#1E3A8A]/10 text-[#1E3A8A]">+</div>
+            <h3 class="font-semibold"><%= f %></h3>
+          </article>
+        <% }) %>
+      </div>
+      <div class="mt-6 grid gap-4 md:grid-cols-2">
+        <article class="feature-card reveal rounded-xl bg-white p-5 shadow-lg" data-reveal-delay="120">
+          <div class="mb-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">OCR photo</div>
+          <h3 class="font-semibold text-[#1E3A8A]">Saisie des notes par photo</h3>
+          <p class="mt-2 text-sm text-slate-600">
+            L'enseignant remplit une fiche de notes, prend une photo, puis le systeme lit automatiquement le texte
+            (matricule + note) pour pre-remplir les resultats.
+          </p>
+          <p class="mt-2 text-xs text-slate-500">
+            Fonctionnement de base: 1) photo nette, 2) reconnaissance OCR, 3) verification rapide, 4) validation.
+          </p>
+        </article>
+
+        <article class="feature-card reveal rounded-xl bg-white p-5 shadow-lg" data-reveal-delay="180">
+          <div class="mb-2 inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">Setup assiste</div>
+          <h3 class="font-semibold text-[#1E3A8A]">Demarrage guide de l'etablissement</h3>
+          <p class="mt-2 text-sm text-slate-600">
+            Un assistant pas-a-pas configure les classes, eleves et notes pour demarrer rapidement sans reglages
+            techniques complexes.
+          </p>
+          <p class="mt-2 text-xs text-slate-500">
+            Fonctionnement de base: 1) creation des classes, 2) import/ajout des eleves, 3) import/saisie des notes.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section id="roles" class="mx-auto max-w-7xl px-4 pb-16">
+      <h2 class="reveal text-3xl font-black text-[#1E3A8A]">Types d'utilisateurs</h2>
+      <div class="mt-6 grid gap-4 lg:grid-cols-3">
+        <article class="reveal rounded-xl bg-white p-6 shadow-lg" data-reveal-delay="0">
+          <h3 class="text-xl font-bold text-[#1E3A8A]">VISITEUR</h3>
+          <ul class="mt-3 space-y-2 text-sm text-slate-600">
+            <li>Voir la presentation</li><li>Consulter les tarifs</li><li>Creer un etablissement</li><li>Demander demonstration</li>
+          </ul>
+        </article>
+        <article class="reveal rounded-xl bg-white p-6 shadow-lg" data-reveal-delay="130">
+          <h3 class="text-xl font-bold text-[#1E3A8A]">CLIENT (ETABLISSEMENT)</h3>
+          <ul class="mt-3 space-y-2 text-sm text-slate-600">
+            <li>Acces dashboard</li><li>Gestion complete ecole</li><li>Suivi abonnement</li><li>Statistiques</li><li>Support technique</li>
+          </ul>
+        </article>
+        <article class="reveal rounded-xl bg-white p-6 shadow-lg" data-reveal-delay="260">
+          <h3 class="text-xl font-bold text-[#1E3A8A]">ADMIN UNITECH</h3>
+          <ul class="mt-3 space-y-2 text-sm text-slate-600">
+            <li>Vue globale des ecoles</li><li>Validation abonnements</li><li>Gestion plans</li><li>Revenus mensuels</li><li>Suspension etablissements</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="pricing" class="mx-auto max-w-7xl px-4 pb-16">
+      <h2 class="reveal text-3xl font-black text-[#1E3A8A]">Plans d'abonnement</h2>
+      <div class="mt-6 grid gap-4 lg:grid-cols-3">
+        <% (plans || []).forEach((p, i) => { %>
+          <% const recommended = String(p.code || '').toLowerCase() === 'pro' || i === 1; %>
+          <article class="price-card reveal zoom rounded-xl bg-white p-6 shadow-lg <%= recommended ? 'recommended' : '' %>" data-reveal-delay="<%= i * 90 %>">
+            <% if (recommended) { %>
+              <span class="mb-3 inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">Recommande</span>
+            <% } %>
+            <h3 class="text-xl font-bold text-[#1E3A8A]"><%= p.name %></h3>
+            <p class="mt-2 text-3xl font-black"><%= Number(p.price_monthly || 0) %> <span class="text-sm font-medium text-slate-500">FCFA/mois</span></p>
+            <p class="mt-1 text-xs text-slate-500">Ou <strong><%= Number(p.price_annual || 0) %> FCFA/an</strong> (<%= Number(p.annual_discount_percent || 15) %>% reduction)</p>
+            <% const maxStudents = Number(p.max_students || 0); %>
+            <% const maxTeachers = Number(p.max_teachers || 0); %>
+            <ul class="mt-4 space-y-2 text-sm text-slate-600">
+              <li>Limite eleves: <strong><%= maxStudents >= 1000000 ? 'Illimites' : maxStudents %></strong></li>
+              <li>Limite enseignants: <strong><%= maxTeachers >= 1000000 ? 'Illimites' : maxTeachers %></strong></li>
+              <li>Finance: <strong><%= Number(p.finance_enabled || 0) === 1 ? 'Incluse' : 'Non incluse' %></strong></li>
+            </ul>
+            <a href="/register" class="cta-btn <%= recommended ? 'pulse-btn' : '' %> mt-5 inline-flex rounded-xl bg-[#F97316] px-4 py-2 text-sm font-semibold text-white">Choisir ce plan</a>
+          </article>
+        <% }) %>
+        <% if (!plans || !plans.length) { %>
+          <article class="reveal rounded-xl bg-white p-6 shadow-lg lg:col-span-3">
+            <p class="text-slate-500">Plans indisponibles pour le moment.</p>
+          </article>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-7xl px-4 pb-16">
+      <h2 class="reveal text-3xl font-black text-[#1E3A8A]">Comparatif des plans</h2>
+      <div class="reveal mt-6 overflow-x-auto rounded-xl bg-white p-4 shadow-lg">
+        <table class="min-w-[840px] w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-600">
+              <th class="px-3 py-2 text-left">Fonctionnalite</th>
+              <th class="px-3 py-2 text-left">Basic</th>
+              <th class="px-3 py-2 text-left">Intermediaire (Smart)</th>
+              <th class="px-3 py-2 text-left">Premium</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-3 py-2">Eleves / Classes</td><td class="px-3 py-2">Illimites</td><td class="px-3 py-2">Illimites</td><td class="px-3 py-2">Illimites</td></tr>
+            <tr><td class="px-3 py-2">Notes / Absences / Paiements</td><td class="px-3 py-2">Oui</td><td class="px-3 py-2">Oui</td><td class="px-3 py-2">Oui</td></tr>
+            <tr><td class="px-3 py-2">Assistant setup</td><td class="px-3 py-2">Non</td><td class="px-3 py-2">Oui</td><td class="px-3 py-2">Oui</td></tr>
+            <tr><td class="px-3 py-2">Import Excel</td><td class="px-3 py-2">Non</td><td class="px-3 py-2">Oui</td><td class="px-3 py-2">Oui</td></tr>
+            <tr><td class="px-3 py-2">OCR photo</td><td class="px-3 py-2">Non</td><td class="px-3 py-2">Non</td><td class="px-3 py-2">Oui</td></tr>
+            <tr><td class="px-3 py-2">Statistiques avancees</td><td class="px-3 py-2">Non</td><td class="px-3 py-2">Non</td><td class="px-3 py-2">Oui</td></tr>
+            <tr><td class="px-3 py-2">Comptes utilisateurs</td><td class="px-3 py-2">1</td><td class="px-3 py-2">Jusqu'a 3</td><td class="px-3 py-2">Illimites</td></tr>
+            <tr><td class="px-3 py-2">Prix mensuel</td><td class="px-3 py-2">15 000 FCFA</td><td class="px-3 py-2">30 000 FCFA</td><td class="px-3 py-2">60 000 FCFA</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-7xl px-4 pb-16">
+      <div class="reveal rounded-2xl bg-[#1E3A8A] p-8 text-white shadow-lg">
+        <h2 class="text-3xl font-black">Modernisez la gestion de votre etablissement des aujourd'hui.</h2>
+        <a href="/register" class="cta-btn mt-5 inline-flex rounded-xl bg-[#F97316] px-5 py-3 text-sm font-bold text-white">Commencer maintenant</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white">
+    <div class="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-4">
+      <div>
+        <h3 class="text-sm font-bold uppercase tracking-[0.16em] text-[#1E3A8A]">UNITECH</h3>
+        <p class="mt-3 text-sm text-slate-600">Entreprise technologique orientee ERP scolaire, maintenance industrielle et formation technique.</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-[#1E3A8A]">Liens rapides</h4>
+        <ul class="mt-3 space-y-2 text-sm text-slate-600">
+          <li><a href="/entreprise">Entreprise</a></li>
+          <li><a href="#vision">Vision</a></li>
+          <li><a href="#features">Fonctionnalites</a></li>
+          <li><a href="#pricing">Tarifs</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold text-[#1E3A8A]">Contact</h4>
+        <ul class="mt-3 space-y-2 text-sm text-slate-600">
+          <li>Email: doumbialayesoma@gmail.com</li>
+          <li>Telephone: +223 90692363</li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold text-[#1E3A8A]">Reseaux</h4>
+        <ul class="mt-3 space-y-2 text-sm text-slate-600">
+          <li>LinkedIn</li><li>Facebook</li><li>YouTube</li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-slate-200 px-4 py-3 text-center text-xs text-slate-500">
+      Copyright <%= new Date().getFullYear() %> UNITECH ERP. Tous droits reserves.
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const loader = document.getElementById("landing-loader");
+      window.addEventListener("load", function () {
+        if (loader) loader.classList.add("hidden");
+      });
+
+      const nav = document.getElementById("smart-nav");
+      const onScroll = () => {
+        if (!nav) return;
+        if (window.scrollY > 10) nav.classList.add("scrolled");
+        else nav.classList.remove("scrolled");
+      };
+      onScroll();
+      window.addEventListener("scroll", onScroll, { passive: true });
+
+      const revealEls = Array.from(document.querySelectorAll(".reveal"));
+      const revealObserver = new IntersectionObserver((entries, obs) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const delay = Number(entry.target.getAttribute("data-reveal-delay") || 0);
+          setTimeout(() => entry.target.classList.add("show"), delay);
+          obs.unobserve(entry.target);
+        });
+      }, { threshold: 0.15 });
+      revealEls.forEach((el) => revealObserver.observe(el));
+
+      const counterEls = Array.from(document.querySelectorAll("[data-counter-target]"));
+      const runCounter = (el) => {
+        const target = Number(el.getAttribute("data-counter-target") || 0);
+        const suffix = el.getAttribute("data-counter-suffix") || "+";
+        const start = performance.now();
+        const duration = 1300;
+        const tick = (now) => {
+          const ratio = Math.min((now - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - ratio, 3);
+          const value = Math.round(target * eased);
+          el.textContent = value.toLocaleString("fr-FR") + suffix;
+          if (ratio < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      };
+      const counterObserver = new IntersectionObserver((entries, obs) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          runCounter(entry.target);
+          obs.unobserve(entry.target);
+        });
+      }, { threshold: 0.5 });
+      counterEls.forEach((el) => counterObserver.observe(el));
+
+      const ctaButtons = Array.from(document.querySelectorAll(".cta-btn"));
+      ctaButtons.forEach((btn) => {
+        btn.addEventListener("mouseenter", (ev) => {
+          const rect = btn.getBoundingClientRect();
+          btn.style.setProperty("--rx", (ev.clientX - rect.left) + "px");
+          btn.style.setProperty("--ry", (ev.clientY - rect.top) + "px");
+          btn.classList.remove("ripple");
+          void btn.offsetWidth;
+          btn.classList.add("ripple");
+          setTimeout(() => btn.classList.remove("ripple"), 550);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

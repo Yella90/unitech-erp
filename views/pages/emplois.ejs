@@ -1,0 +1,141 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Ajouter un creneau</h2>
+    <form method="POST" action="/emplois" class="mt-4 grid gap-3 md:grid-cols-5">
+      <div>
+        <label class="form-label">Affectation</label>
+        <select class="form-input" name="affectation_id" required>
+          <option value="">Selectionner</option>
+          <% (affectations || []).forEach((a) => { %>
+            <option value="<%= a.id %>"><%= a.classe %> | <%= a.matiere %> | <%= a.enseignant_nom || a.enseignant_matricule %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Jour</label>
+        <select class="form-input" name="jour" required>
+          <option value="">Selectionner</option>
+          <option value="Lundi">Lundi</option>
+          <option value="Mardi">Mardi</option>
+          <option value="Mercredi">Mercredi</option>
+          <option value="Jeudi">Jeudi</option>
+          <option value="Vendredi">Vendredi</option>
+          <option value="Samedi">Samedi</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Heure debut</label>
+        <input class="form-input" type="time" name="heure_debut" required />
+      </div>
+      <div>
+        <label class="form-label">Heure fin</label>
+        <input class="form-input" type="time" name="heure_fin" />
+      </div>
+      <div class="flex items-end">
+        <button class="btn btn-primary w-full" type="submit">Ajouter</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card-shell p-5 space-y-4">
+    <h2 class="text-base font-semibold">Emploi du temps de toutes les classes</h2>
+    <form method="GET" action="/emplois" class="grid gap-3 md:grid-cols-4">
+      <div>
+        <label class="form-label">Filtrer par classe</label>
+        <select class="form-input" name="classe">
+          <option value="">Toutes</option>
+          <% (classes || []).forEach((c) => { %>
+            <option value="<%= c.nom %>" <%= filters && filters.classe === c.nom ? 'selected' : '' %>><%= c.nom %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Filtrer par jour</label>
+        <select class="form-input" name="jour">
+          <option value="">Tous</option>
+          <option value="Lundi" <%= filters && filters.jour === 'Lundi' ? 'selected' : '' %>>Lundi</option>
+          <option value="Mardi" <%= filters && filters.jour === 'Mardi' ? 'selected' : '' %>>Mardi</option>
+          <option value="Mercredi" <%= filters && filters.jour === 'Mercredi' ? 'selected' : '' %>>Mercredi</option>
+          <option value="Jeudi" <%= filters && filters.jour === 'Jeudi' ? 'selected' : '' %>>Jeudi</option>
+          <option value="Vendredi" <%= filters && filters.jour === 'Vendredi' ? 'selected' : '' %>>Vendredi</option>
+          <option value="Samedi" <%= filters && filters.jour === 'Samedi' ? 'selected' : '' %>>Samedi</option>
+        </select>
+      </div>
+      <div class="flex items-end">
+        <button class="btn btn-secondary" type="submit">Filtrer</button>
+      </div>
+      <div class="flex items-end">
+        <a class="btn btn-primary" href="/emplois/export?<%= exportQuery || '' %>">Exporter PDF</a>
+      </div>
+    </form>
+
+    <%
+      const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+      const emploisRows = Array.isArray(emplois) ? emplois : [];
+      const classesNames = [...new Set(emploisRows.map((e) => e.classe).filter(Boolean))];
+      const timeSlots = [...new Set(emploisRows.map((e) => {
+        const start = e.heure_debut || '';
+        const end = e.heure_fin || '';
+        return end ? `${start} - ${end}` : start;
+      }).filter(Boolean))].sort();
+    %>
+
+    <% if (!classesNames.length) { %>
+      <p class="text-sm text-slate-500">Aucun emploi du temps disponible.</p>
+    <% } %>
+
+    <% classesNames.forEach((classeName) => { %>
+      <div class="rounded-xl border border-slate-200 p-4 space-y-3">
+        <h3 class="text-sm font-semibold text-slate-800">Classe : <%= classeName %></h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50 text-slate-700">
+                <th class="px-3 py-2 text-left">Heure</th>
+                <% days.forEach((day) => { %>
+                  <th class="px-3 py-2 text-left"><%= day %></th>
+                <% }) %>
+              </tr>
+            </thead>
+            <tbody>
+              <% timeSlots.forEach((slot) => { %>
+                <tr class="border-b border-slate-100 align-top">
+                  <td class="px-3 py-2 font-medium text-slate-700"><%= slot %></td>
+                  <% days.forEach((day) => {
+                    const cellItems = emploisRows.filter((e) => {
+                      const start = e.heure_debut || '';
+                      const end = e.heure_fin || '';
+                      const rowSlot = end ? `${start} - ${end}` : start;
+                      return e.classe === classeName && e.jour === day && rowSlot === slot;
+                    });
+                  %>
+                    <td class="px-3 py-2 text-slate-700">
+                      <% if (cellItems.length) { %>
+                        <% cellItems.forEach((item) => { %>
+                          <div class="mb-2 last:mb-0">
+                            <p class="font-semibold"><%= item.matiere || '-' %></p>
+                            <p class="text-xs text-slate-500"><%= item.enseignant_nom || item.enseignant_matricule || 'N/A' %></p>
+                          </div>
+                        <% }) %>
+                      <% } else { %>
+                        <span class="text-slate-400">-</span>
+                      <% } %>
+                    </td>
+                  <% }) %>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+
+  <%- include('../partials/table', {
+    tableTitle: 'Liste des creneaux',
+    headers: ['Classe', 'Jour', 'Horaire', 'Matiere', 'Enseignant', 'Actions'],
+    rows: emplois || [],
+    rowPartial: '../partials/rows/emplois-row',
+    emptyText: 'Aucun creneau disponible.'
+  }) %>
+</section>

@@ -1,0 +1,46 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <form action="/eleves/liste" method="GET" class="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto_auto]">
+      <div>
+        <label class="form-label" for="matricule">Filtrer par matricule</label>
+        <input id="matricule" name="matricule" type="text" value="<%= filters && filters.matricule ? filters.matricule : '' %>" class="form-input" placeholder="Ex: AB261234" />
+      </div>
+      <div>
+        <label class="form-label" for="classe">Filtrer par classe</label>
+        <select id="classe" name="classe" class="form-input">
+          <option value="">Toutes les classes</option>
+          <% (classes || []).forEach((cl) => { %>
+            <option value="<%= cl.nom %>" <%= filters && filters.classe === cl.nom ? 'selected' : '' %>><%= cl.nom %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="form-label" for="matiere">Filtrer par matiere</label>
+        <select id="matiere" name="matiere" class="form-input">
+          <option value="">Toutes les matieres</option>
+          <% (matieres || []).forEach((m) => { %>
+            <option value="<%= m.nom %>" <%= filters && filters.matiere === m.nom ? 'selected' : '' %>><%= m.nom %></option>
+          <% }) %>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary sm:self-end w-full sm:w-auto">Filtrer</button>
+      <a href="/eleves/liste" class="btn btn-secondary sm:self-end w-full sm:w-auto">Reinitialiser</a>
+    </form>
+  </div>
+
+  <div class="flex flex-wrap justify-end gap-2">
+    <% if (currentUser && currentUser.role === 'school_admin') { %>
+      <a href="/transfers/incoming" class="btn btn-secondary w-full sm:w-auto">Transferts entrants</a>
+    <% } %>
+    <a href="/eleves/export/pdf?<%= exportQuery || '' %>" class="btn btn-secondary w-full sm:w-auto">Exporter fiche PDF (OCR)</a>
+    <a href="/eleves/inscription" class="btn btn-primary w-full sm:w-auto">Inscrire un eleve</a>
+  </div>
+
+  <%- include('../partials/table', {
+    tableTitle: 'Eleves de l\'ecole',
+    headers: ['Matricule', 'Nom complet', 'Classe', 'Naissance', 'Statut', 'Actions'],
+    rows: eleves || [],
+    rowPartial: '../partials/rows/eleves-row',
+    emptyText: 'Aucun eleve trouve.'
+  }) %>
+</section>

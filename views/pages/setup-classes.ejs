@@ -1,0 +1,54 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Assistant setup - Etape 1/3: Classes</h2>
+    <p class="mt-1 text-sm text-slate-500">Creez rapidement vos classes (manuel ou import Excel/CSV).</p>
+  </div>
+
+  <div class="grid gap-5 lg:grid-cols-2">
+    <div class="card-shell p-5">
+      <h3 class="font-semibold">Creation manuelle</h3>
+      <form method="POST" action="/setup/classes" class="mt-4 grid gap-3 md:grid-cols-2">
+        <div><label class="form-label">Nom classe</label><input class="form-input" name="nom" placeholder="Ex: 7eme A" required /></div>
+        <div>
+          <label class="form-label">Niveau</label>
+          <select class="form-input" name="niveau" required>
+            <option value="">Selectionner</option>
+            <option>jardin</option><option>1ere</option><option>2eme</option><option>3eme</option><option>4eme</option><option>5eme</option><option>6eme</option>
+            <option>7eme</option><option>8eme</option><option>9eme</option><option>10eme</option><option>11eme</option><option>terminale</option>
+          </select>
+        </div>
+        <div><label class="form-label">Mensuel</label><input type="number" min="0" class="form-input" name="mensuel" /></div>
+        <div><label class="form-label">Frais inscription</label><input type="number" min="0" class="form-input" name="frais_inscription" /></div>
+        <div><label class="form-label">Effectif max</label><input type="number" min="1" class="form-input" name="effectif_max" value="50" /></div>
+        <div class="md:col-span-2"><button class="btn btn-primary" type="submit">Ajouter classe</button></div>
+      </form>
+    </div>
+
+    <div class="card-shell p-5">
+      <h3 class="font-semibold">Import Excel / CSV</h3>
+      <p class="mt-1 text-xs text-slate-500">Colonnes: Nom, Niveau, Mensuel, Frais_inscription, Effectif_max</p>
+      <form method="POST" action="/setup/classes/import/excel" enctype="multipart/form-data" class="mt-4 space-y-3">
+        <input type="file" class="form-input" name="classes_file" accept=".xlsx,.xls,.csv" required />
+        <button class="btn btn-primary" type="submit">Importer classes</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card-shell p-5">
+    <h3 class="font-semibold">Classes existantes</h3>
+    <div class="mt-3 overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead><tr class="border-b border-slate-200 text-slate-500"><th class="px-3 py-2 text-left">Nom</th><th class="px-3 py-2 text-left">Niveau</th><th class="px-3 py-2 text-left">Annee</th></tr></thead>
+        <tbody>
+          <% (classes || []).forEach((c) => { %>
+            <tr class="border-b border-slate-100"><td class="px-3 py-2"><%= c.nom %></td><td class="px-3 py-2"><%= c.niveau || '-' %></td><td class="px-3 py-2"><%= c.annee || '-' %></td></tr>
+          <% }) %>
+          <% if (!classes || !classes.length) { %><tr><td colspan="3" class="px-3 py-3 text-slate-500">Aucune classe.</td></tr><% } %>
+        </tbody>
+      </table>
+    </div>
+    <div class="mt-4">
+      <a href="/setup/eleves" class="btn btn-secondary">Passer a l'etape 2: Eleves</a>
+    </div>
+  </div>
+</section>

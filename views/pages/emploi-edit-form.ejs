@@ -1,0 +1,40 @@
+<section class="card-shell p-6 max-w-3xl">
+  <h2 class="text-lg font-semibold text-slate-900">Modifier un creneau</h2>
+  <p class="mt-1 text-sm text-slate-500">Mettez a jour l'affectation, le jour et l'horaire.</p>
+
+  <form method="POST" action="/emplois/edit/<%= emploi.id %>" class="mt-5 grid gap-4 md:grid-cols-2">
+    <div class="md:col-span-2">
+      <label class="form-label">Affectation</label>
+      <select class="form-input" name="affectation_id" required>
+        <option value="">Selectionner</option>
+        <% (affectations || []).forEach((a) => { %>
+          <option value="<%= a.id %>" <%= Number(emploi.affectation_id) === Number(a.id) ? 'selected' : '' %>>
+            <%= a.classe %> | <%= a.matiere %> | <%= a.enseignant_nom || a.enseignant_matricule %>
+          </option>
+        <% }) %>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Jour</label>
+      <select class="form-input" name="jour" required>
+        <option value="">Selectionner</option>
+        <% ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].forEach((day) => { %>
+          <option value="<%= day %>" <%= emploi.jour === day ? 'selected' : '' %>><%= day %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Heure debut</label>
+      <input class="form-input" type="time" name="heure_debut" value="<%= emploi.heure_debut || '' %>" required />
+    </div>
+    <div>
+      <label class="form-label">Heure fin</label>
+      <input class="form-input" type="time" name="heure_fin" value="<%= emploi.heure_fin || '' %>" />
+    </div>
+
+    <div class="md:col-span-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <a href="/emplois" class="btn btn-secondary w-full sm:w-auto">Annuler</a>
+      <button type="submit" class="btn btn-primary w-full sm:w-auto">Enregistrer</button>
+    </div>
+  </form>
+</section>

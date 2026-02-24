@@ -1,0 +1,295 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Saisie des notes</h2>
+    <form method="POST" action="/notes" class="mt-4 grid gap-3 md:grid-cols-7">
+      <div>
+        <label class="form-label">Eleve</label>
+        <input id="note-eleve-search" class="form-input" list="eleves-options" placeholder="Tape matricule ou nom" autocomplete="off" required />
+        <input id="note-eleve" type="hidden" name="eleve_matricule" />
+        <datalist id="eleves-options">
+          <% (eleves || []).forEach((e) => { %>
+            <option value="<%= e.matricule %>" label="<%= e.nom %> <%= e.prenom %> - <%= e.classe || '-' %>"></option>
+          <% }) %>
+        </datalist>
+      </div>
+      <div>
+        <label class="form-label">Matiere</label>
+        <select id="note-matiere" class="form-input" name="matiere" required disabled>
+          <option value="">Choisir d'abord un eleve</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Trimestre</label>
+        <select class="form-input" name="trimestre" required>
+          <option value="1" <%= filters && filters.trimestre === '1' ? 'selected' : '' %>>Trimestre 1</option>
+          <option value="2" <%= filters && filters.trimestre === '2' ? 'selected' : '' %>>Trimestre 2</option>
+          <option value="3" <%= filters && filters.trimestre === '3' ? 'selected' : '' %>>Trimestre 3</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Type</label>
+        <select class="form-input" name="note_type" required>
+          <option value="devoir">Devoir</option>
+          <option value="composition">Composition</option>
+        </select>
+      </div>
+      <div><label class="form-label">Note /20</label><input class="form-input" type="number" min="0" max="20" step="0.01" name="note" required /></div>
+      <div>
+        <label class="form-label">Annee</label>
+        <select class="form-input" name="annee" required>
+          <% if (schoolYears && schoolYears.length) { %>
+            <% schoolYears.forEach((sy) => { %>
+              <option value="<%= sy %>" <%= (filters && filters.annee === sy) || (activeSchoolYear === sy && !(filters && filters.annee)) ? 'selected' : '' %>><%= sy %></option>
+            <% }) %>
+          <% } else { %>
+            <option value="<%= activeSchoolYear || '' %>"><%= activeSchoolYear || '' %></option>
+          <% } %>
+        </select>
+      </div>
+      <div class="flex items-end"><button class="btn btn-primary w-full" type="submit">Ajouter</button></div>
+    </form>
+    <p id="note-eleve-classe" class="mt-2 text-xs text-slate-500"></p>
+  </div>
+
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Bulletin individuel</h2>
+    <form method="GET" action="/notes" class="mt-4 grid gap-3 md:grid-cols-5">
+      <div>
+        <label class="form-label">Eleve</label>
+        <input class="form-input" list="eleves-options-bulletin" name="matricule" value="<%= filters && filters.matricule ? filters.matricule : '' %>" placeholder="Tape matricule ou nom" required />
+        <datalist id="eleves-options-bulletin">
+          <% (eleves || []).forEach((e) => { %>
+            <option value="<%= e.matricule %>" label="<%= e.nom %> <%= e.prenom %> - <%= e.classe || '-' %>"></option>
+          <% }) %>
+        </datalist>
+      </div>
+      <div>
+        <label class="form-label">Trimestre</label>
+        <select class="form-input" name="trimestre">
+          <option value="1" <%= filters && filters.trimestre === '1' ? 'selected' : '' %>>Trimestre 1</option>
+          <option value="2" <%= filters && filters.trimestre === '2' ? 'selected' : '' %>>Trimestre 2</option>
+          <option value="3" <%= filters && filters.trimestre === '3' ? 'selected' : '' %>>Trimestre 3</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Annee</label>
+        <select class="form-input" name="annee">
+          <% (schoolYears || []).forEach((sy) => { %>
+            <option value="<%= sy %>" <%= (filters && filters.annee === sy) || (activeSchoolYear === sy && !(filters && filters.annee)) ? 'selected' : '' %>><%= sy %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="flex items-end"><button class="btn btn-secondary w-full" type="submit">Calculer</button></div>
+    </form>
+
+    <% if (bulletin) { %>
+      <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p class="text-sm text-slate-600">
+            <strong><%= bulletin.eleve.nom %> <%= bulletin.eleve.prenom %></strong>
+            (<%= bulletin.eleve.matricule %>) - Classe <strong><%= bulletin.eleve.classe %></strong>
+          </p>
+          <a
+            class="btn btn-primary"
+            href="/bulletins/eleve/export?matricule=<%= encodeURIComponent(bulletin.eleve.matricule) %>&trimestre=<%= encodeURIComponent(filters && filters.trimestre ? filters.trimestre : '1') %>&annee=<%= encodeURIComponent(filters && filters.annee ? filters.annee : '') %>"
+          >
+            Exporter PDF bulletin eleve
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-600">
+              <th class="px-3 py-2 text-left">Matiere</th>
+              <th class="px-3 py-2 text-left">Coef</th>
+              <th class="px-3 py-2 text-left">Moy. devoirs</th>
+              <th class="px-3 py-2 text-left">Composition</th>
+              <th class="px-3 py-2 text-left">Moy. matiere</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (bulletin.details || []).forEach((d) => { %>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2"><%= d.matiere %></td>
+                <td class="px-3 py-2"><%= d.coefficient %></td>
+                <td class="px-3 py-2"><%= d.avgDevoirs %></td>
+                <td class="px-3 py-2"><%= d.composition === null ? '-' : d.composition %></td>
+                <td class="px-3 py-2 font-semibold"><%= d.moyenneMatiere %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-600">
+              <th class="px-3 py-2 text-left">Moyenne generale</th>
+              <th class="px-3 py-2 text-left">Rang</th>
+              <th class="px-3 py-2 text-left">Mention</th>
+              <th class="px-3 py-2 text-left">Appreciation</th>
+              <th class="px-3 py-2 text-left">Validite</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-slate-100">
+              <td class="px-3 py-2 font-semibold"><%= bulletin.average %>/20</td>
+              <td class="px-3 py-2"><%= bulletin.rank || '-' %> / <%= bulletin.classSize || '-' %></td>
+              <td class="px-3 py-2"><%= bulletin.mention %></td>
+              <td class="px-3 py-2"><%= bulletin.appreciation %></td>
+              <td class="px-3 py-2">
+                <span class="badge <%= bulletin.decision === 'Admis' ? 'badge-ok' : 'badge-warn' %>">
+                  <%= bulletin.decision %>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Bulletin par classe</h2>
+    <form method="GET" action="/notes" class="mt-4 grid gap-3 md:grid-cols-5">
+      <div>
+        <label class="form-label">Classe</label>
+        <select class="form-input" name="classe" required>
+          <option value="">Selectionner</option>
+          <% (classes || []).forEach((c) => { %>
+            <option value="<%= c.nom %>" <%= filters && filters.classe === c.nom ? 'selected' : '' %>><%= c.nom %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Trimestre</label>
+        <select class="form-input" name="trimestre">
+          <option value="1" <%= filters && filters.trimestre === '1' ? 'selected' : '' %>>Trimestre 1</option>
+          <option value="2" <%= filters && filters.trimestre === '2' ? 'selected' : '' %>>Trimestre 2</option>
+          <option value="3" <%= filters && filters.trimestre === '3' ? 'selected' : '' %>>Trimestre 3</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Annee</label>
+        <select class="form-input" name="annee">
+          <% (schoolYears || []).forEach((sy) => { %>
+            <option value="<%= sy %>" <%= (filters && filters.annee === sy) || (activeSchoolYear === sy && !(filters && filters.annee)) ? 'selected' : '' %>><%= sy %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="flex items-end gap-2">
+        <button class="btn btn-secondary w-full" type="submit">Afficher</button>
+        <a
+          class="btn btn-primary whitespace-nowrap"
+          href="/bulletins/classe?classe=<%= encodeURIComponent(filters && filters.classe ? filters.classe : '') %>&trimestre=<%= encodeURIComponent(filters && filters.trimestre ? filters.trimestre : '1') %>&annee=<%= encodeURIComponent(filters && filters.annee ? filters.annee : '') %>"
+        >
+          Page classements
+        </a>
+      </div>
+    </form>
+
+    <% if (classBulletins && classBulletins.length) { %>
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-600">
+              <th class="px-3 py-2 text-left">Rang</th>
+              <th class="px-3 py-2 text-left">Matricule</th>
+              <th class="px-3 py-2 text-left">Eleve</th>
+              <th class="px-3 py-2 text-left">Moyenne</th>
+              <th class="px-3 py-2 text-left">Mention</th>
+              <th class="px-3 py-2 text-left">Appreciation</th>
+              <th class="px-3 py-2 text-left">Validite</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% classBulletins.forEach((row) => { %>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2 font-semibold"><%= row.rang %></td>
+                <td class="px-3 py-2"><%= row.matricule %></td>
+                <td class="px-3 py-2"><%= row.nom %> <%= row.prenom %></td>
+                <td class="px-3 py-2"><%= row.moyenne_generale %>/20</td>
+                <td class="px-3 py-2"><%= row.mention %></td>
+                <td class="px-3 py-2"><%= row.appreciation %></td>
+                <td class="px-3 py-2"><span class="badge <%= row.decision === 'Admis' ? 'badge-ok' : 'badge-warn' %>"><%= row.decision %></span></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+
+  <%- include('../partials/table', {
+    tableTitle: 'Historique des notes',
+    headers: ['Matricule', 'Matiere', 'Type', 'Trimestre', 'Note', 'Annee', 'Actions'],
+    rows: notes || [],
+    rowPartial: '../partials/rows/notes-row',
+    emptyText: 'Aucune note enregistree.'
+  }) %>
+</section>
+
+<script>
+  (() => {
+    const noteForm = document.querySelector("form[action='/notes']");
+    const eleveSearchInput = document.getElementById("note-eleve-search");
+    const eleveInput = document.getElementById("note-eleve");
+    const matiereSelect = document.getElementById("note-matiere");
+    const classeHint = document.getElementById("note-eleve-classe");
+    if (!eleveSearchInput || !eleveInput || !matiereSelect) return;
+
+    const renderMatieres = (matieres) => {
+      const list = Array.isArray(matieres) ? matieres : [];
+      if (!list.length) {
+        matiereSelect.innerHTML = "<option value=''>Aucune matiere disponible</option>";
+        matiereSelect.disabled = true;
+        return;
+      }
+      matiereSelect.innerHTML = "<option value=''>Selectionner</option>" + list.map((m) => `<option value="${String(m).replace(/"/g, "&quot;")}">${m}</option>`).join("");
+      matiereSelect.disabled = false;
+    };
+
+    const loadMatieresForEleve = async () => {
+      const matricule = (eleveSearchInput.value || "").trim();
+      eleveInput.value = matricule;
+      if (!matricule) {
+        matiereSelect.innerHTML = "<option value=''>Choisir d'abord un eleve</option>";
+        matiereSelect.disabled = true;
+        if (classeHint) classeHint.textContent = "";
+        return;
+      }
+
+      try {
+        const res = await fetch(`/notes/options/matieres?matricule=${encodeURIComponent(matricule)}`, {
+          headers: { "Accept": "application/json" }
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || "Erreur");
+        renderMatieres(data.matieres || []);
+        if (classeHint) {
+          classeHint.textContent = data.eleve && data.eleve.classe
+            ? `Classe de l'eleve: ${data.eleve.classe}`
+            : "";
+        }
+      } catch (_) {
+        matiereSelect.innerHTML = "<option value=''>Erreur chargement matieres</option>";
+        matiereSelect.disabled = true;
+        if (classeHint) classeHint.textContent = "";
+      }
+    };
+
+    eleveSearchInput.addEventListener("input", () => {
+      eleveInput.value = (eleveSearchInput.value || "").trim();
+    });
+    eleveSearchInput.addEventListener("change", loadMatieresForEleve);
+    eleveSearchInput.addEventListener("blur", loadMatieresForEleve);
+    if (noteForm) {
+      noteForm.addEventListener("submit", () => {
+        eleveInput.value = (eleveSearchInput.value || "").trim();
+      });
+    }
+  })();
+</script>

@@ -1,0 +1,68 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <form action="/transfers/incoming" method="GET" class="grid gap-3 md:grid-cols-[240px_auto]">
+      <div>
+        <label class="form-label" for="status">Filtre statut</label>
+        <select id="status" name="status" class="form-input">
+          <option value="pending" <%= filters && filters.status === 'pending' ? 'selected' : '' %>>En attente</option>
+          <option value="accepted" <%= filters && filters.status === 'accepted' ? 'selected' : '' %>>Acceptes</option>
+          <option value="rejected" <%= filters && filters.status === 'rejected' ? 'selected' : '' %>>Refuses</option>
+          <option value="" <%= filters && !filters.status ? 'selected' : '' %>>Tous</option>
+        </select>
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit" class="btn btn-primary">Filtrer</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card-shell overflow-hidden">
+    <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+      <h2 class="text-base font-semibold text-slate-900">Demandes recues</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[900px] text-sm">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Date</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Eleve</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Ecole source</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Statut</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <% if (transfers && transfers.length) { %>
+            <% transfers.forEach((t) => { %>
+              <tr>
+                <td class="px-5 py-3"><%= t.date_request || '-' %></td>
+                <td class="px-5 py-3"><%= t.nom %> <%= t.prenom %></td>
+                <td class="px-5 py-3"><%= t.from_school_name %></td>
+                <td class="px-5 py-3">
+                  <span class="badge <%= t.status === 'accepted' ? 'badge-ok' : (t.status === 'rejected' ? 'badge-warn' : 'badge-info') %>">
+                    <%= t.status %>
+                  </span>
+                </td>
+                <td class="px-5 py-3 space-x-2">
+                  <a href="/transfers/<%= t.id %>" class="btn btn-secondary btn-sm">Detail</a>
+                  <% if (t.status === 'pending') { %>
+                    <form action="/transfers/<%= t.id %>/accept" method="POST" class="inline">
+                      <button class="btn btn-primary btn-sm" type="submit">Accepter</button>
+                    </form>
+                    <form action="/transfers/<%= t.id %>/reject" method="POST" class="inline">
+                      <button class="btn btn-danger btn-sm" type="submit">Refuser</button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="5" class="px-5 py-12 text-center text-slate-400">Aucune demande de transfert.</td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

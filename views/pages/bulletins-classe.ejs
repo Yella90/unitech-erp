@@ -1,0 +1,143 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Classement des bulletins</h2>
+    <form method="GET" action="/bulletins/classe" class="mt-4 grid gap-3 md:grid-cols-5">
+      <div>
+        <label class="form-label">Classe</label>
+        <select class="form-input" name="classe" required>
+          <option value="">Selectionner</option>
+          <% (classes || []).forEach((c) => { %>
+            <option value="<%= c.nom %>" <%= filters && filters.classe === c.nom ? 'selected' : '' %>><%= c.nom %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Trimestre</label>
+        <select class="form-input" name="trimestre" required>
+          <option value="1" <%= filters && filters.trimestre === '1' ? 'selected' : '' %>>Trimestre 1</option>
+          <option value="2" <%= filters && filters.trimestre === '2' ? 'selected' : '' %>>Trimestre 2</option>
+          <option value="3" <%= filters && filters.trimestre === '3' ? 'selected' : '' %>>Trimestre 3</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Annee scolaire</label>
+        <select class="form-input" name="annee">
+          <% (schoolYears || []).forEach((sy) => { %>
+            <option value="<%= sy %>" <%= (filters && filters.annee === sy) || (activeSchoolYear === sy && !(filters && filters.annee)) ? 'selected' : '' %>><%= sy %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="flex items-end gap-2 md:col-span-2">
+        <button class="btn btn-primary" type="submit">Afficher</button>
+        <a
+          class="btn btn-secondary"
+          href="/bulletins/classe/export?classe=<%= encodeURIComponent(filters && filters.classe ? filters.classe : '') %>&trimestre=<%= encodeURIComponent(filters && filters.trimestre ? filters.trimestre : '1') %>&annee=<%= encodeURIComponent(filters && filters.annee ? filters.annee : '') %>"
+        >
+          Exporter PDF
+        </a>
+        <a class="btn btn-secondary" href="/notes">Retour Notes</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Mutation annuelle</h2>
+    <p class="mt-1 text-sm text-slate-500">Les admis passent en classe superieure. Les non admis restent dans la classe actuelle.</p>
+    <% const refYear = (filters && filters.annee) || activeSchoolYear || ''; %>
+    <% const refMatch = String(refYear).match(/^(\d{4})-(\d{4})$/); %>
+    <% const nextYear = refMatch ? `${Number(refMatch[1]) + 1}-${Number(refMatch[2]) + 1}` : ''; %>
+    <form method="POST" action="/bulletins/classe/mutation" class="mt-4 grid gap-3 md:grid-cols-5" onsubmit="return confirm('Confirmer la mutation annuelle pour cette classe ?');">
+      <div>
+        <label class="form-label">Classe source</label>
+        <select class="form-input" name="classe" required>
+          <option value="">Selectionner</option>
+          <% (classes || []).forEach((c) => { %>
+            <option value="<%= c.nom %>" <%= filters && filters.classe === c.nom ? 'selected' : '' %>><%= c.nom %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Annee source</label>
+        <select class="form-input" name="from_year">
+          <% (schoolYears || []).forEach((sy) => { %>
+            <option value="<%= sy %>" <%= (filters && filters.annee === sy) || (activeSchoolYear === sy && !(filters && filters.annee)) ? 'selected' : '' %>><%= sy %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Annee cible</label>
+        <input class="form-input" name="to_year" value="<%= nextYear %>" placeholder="2026-2027" required />
+      </div>
+      <div>
+        <label class="form-label">Trimestre reference</label>
+        <select class="form-input" name="trimestre" required>
+          <option value="3">Trimestre 3</option>
+          <option value="2">Trimestre 2</option>
+          <option value="1">Trimestre 1</option>
+        </select>
+      </div>
+      <div class="flex items-end">
+        <button class="btn btn-primary w-full" type="submit">Lancer mutation</button>
+      </div>
+    </form>
+  </div>
+
+  <% if (currentUser && currentUser.role === 'school_admin') { %>
+    <div class="card-shell p-5">
+      <h2 class="text-base font-semibold">Mutation annuelle etablissement (globale)</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Cette action promeut automatiquement les eleves admis (moyenne annuelle >= 10) et met a jour l'annee scolaire.
+        Elle est autorisee uniquement si les 3 trimestres existent pour l'annee source.
+      </p>
+      <% const gRefYear = (filters && filters.annee) || activeSchoolYear || ''; %>
+      <% const gRefMatch = String(gRefYear).match(/^(\d{4})-(\d{4})$/); %>
+      <% const gNextYear = gRefMatch ? `${Number(gRefMatch[1]) + 1}-${Number(gRefMatch[2]) + 1}` : ''; %>
+      <form method="POST" action="/bulletins/ecole/mutation" class="mt-4 grid gap-3 md:grid-cols-4" onsubmit="return confirm('Confirmer la mutation annuelle de tout l\\'etablissement ?');">
+        <div>
+          <label class="form-label">Annee source</label>
+          <select class="form-input" name="from_year" required>
+            <% (schoolYears || []).forEach((sy) => { %>
+              <option value="<%= sy %>" <%= (filters && filters.annee === sy) || (activeSchoolYear === sy && !(filters && filters.annee)) ? 'selected' : '' %>><%= sy %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Annee cible</label>
+          <input class="form-input" name="to_year" value="<%= gNextYear %>" placeholder="2026-2027" required />
+        </div>
+        <div>
+          <label class="form-label">Confirmation mot de passe admin</label>
+          <input class="form-input" type="password" name="admin_password" placeholder="Mot de passe administrateur" minlength="8" required />
+        </div>
+        <div class="flex items-end">
+          <button class="btn btn-primary w-full" type="submit">Lancer mutation globale</button>
+        </div>
+      </form>
+    </div>
+  <% } %>
+
+  <% if (bulletins && bulletins.length) { %>
+    <div class="grid gap-4 sm:grid-cols-3">
+      <article class="card-shell p-4">
+        <p class="text-sm text-slate-500">Effectif</p>
+        <p class="mt-1 text-2xl font-bold text-slate-900"><%= summary.total %></p>
+      </article>
+      <article class="card-shell p-4">
+        <p class="text-sm text-slate-500">Moyenne de classe</p>
+        <p class="mt-1 text-2xl font-bold text-slate-900"><%= summary.averageClass %>/20</p>
+      </article>
+      <article class="card-shell p-4">
+        <p class="text-sm text-slate-500">Admis</p>
+        <p class="mt-1 text-2xl font-bold text-emerald-600"><%= summary.admis %></p>
+      </article>
+    </div>
+  <% } %>
+
+  <%- include('../partials/table', {
+    tableTitle: 'Bulletins par rang',
+    headers: ['Rang', 'Matricule', 'Nom complet', 'Moyenne', 'Mention', 'Appreciation', 'Validite'],
+    rows: bulletins || [],
+    rowPartial: '../partials/rows/bulletins-classe-row',
+    emptyText: 'Aucun bulletin a afficher pour ces filtres.'
+  }) %>
+</section>

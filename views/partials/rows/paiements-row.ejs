@@ -1,0 +1,12 @@
+<tr class="transition hover:bg-slate-50/70">
+  <td class="px-5 py-3"><%= row.eleve_matricule || '-' %></td>
+  <td class="px-5 py-3"><%= row.mois || '-' %></td>
+  <td class="px-5 py-3"><%= row.mode_payement || '-' %></td>
+  <td class="px-5 py-3"><span class="badge badge-ok">Paye</span></td>
+  <td class="px-5 py-3 font-semibold"><%= row.montant || 0 %> FCFA</td>
+  <td class="px-5 py-3 text-right">
+    <form method="POST" action="/finances/paiements/delete/<%= row.id %>" class="inline" data-confirm="Supprimer ce paiement ?">
+      <button class="btn btn-danger btn-sm" type="submit">Supprimer</button>
+    </form>
+  </td>
+</tr>

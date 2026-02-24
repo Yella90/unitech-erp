@@ -1,0 +1,183 @@
+<section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <%- include('../partials/card', { title: 'Total eleves', value: datas.totaleleves || 0, subtitle: 'Inscrits cette annee', tone: 'tone-indigo', iconName: 'users' }) %>
+  <%- include('../partials/card', { title: 'Total classes', value: datas.totalclasses || 0, subtitle: 'Niveaux actifs', tone: 'tone-emerald', iconName: 'layers' }) %>
+  <%- include('../partials/card', { title: 'Total recettes', value: (datas.tt || 0) + ' FCFA', subtitle: 'Encaissement cumule', tone: 'tone-sky', iconName: 'banknote' }) %>
+  <%- include('../partials/card', { title: 'Reste a couvrir', value: (datas.reste || 0) + ' FCFA', subtitle: 'Prevision moins encaissement', tone: 'tone-rose', iconName: 'chart-down' }) %>
+</section>
+
+<% if (datas.subscriptionStatus) { %>
+  <section class="card-shell p-4">
+    <p class="text-sm text-slate-600">
+      Abonnement: <strong><%= datas.subscriptionStatus.status || 'inconnu' %></strong>
+      <% if (datas.subscriptionStatus.planName) { %> - Plan: <strong><%= datas.subscriptionStatus.planName %></strong><% } %>
+      <% if (datas.subscriptionStatus.expiresAt) { %> - Expire le <strong><%= datas.subscriptionStatus.expiresAt %></strong><% } %>
+    </p>
+  </section>
+<% } %>
+
+<section class="card-shell p-5">
+  <form action="/" method="GET" class="grid gap-3 md:grid-cols-[1fr_auto]">
+    <div>
+      <label class="form-label">Choisir le mois pour les graphes</label>
+      <select class="form-input" name="month">
+        <% (datas.monthOptions || []).forEach((m) => { %>
+          <option value="<%= m.value %>" <%= datas.activeMonth === m.value ? 'selected' : '' %>><%= m.label %></option>
+        <% }) %>
+      </select>
+    </div>
+    <button class="btn btn-primary md:self-end">Actualiser graphes</button>
+  </form>
+</section>
+
+<section class="grid gap-6 lg:grid-cols-2">
+  <div class="card-shell p-5">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-base font-semibold">Depenses: prevision vs actuel</h2>
+      <span class="badge badge-neutral">Radar</span>
+    </div>
+    <div class="h-72"><canvas id="depensesChart" class="h-full w-full"></canvas></div>
+  </div>
+
+  <div class="card-shell p-5">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-base font-semibold">Revenus: prevision vs actuel</h2>
+      <span class="badge badge-neutral">Courbe</span>
+    </div>
+    <div class="h-72"><canvas id="revenusChart" class="h-full w-full"></canvas></div>
+  </div>
+</section>
+
+<section class="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Repere annee scolaire</h2>
+    <p class="mt-2 text-sm text-slate-600">
+      Date de rentree: <strong><%= datas.finance && datas.finance.startDate ? datas.finance.startDate : '-' %></strong>
+      <% if (datas.finance) { %>
+        - Mois ecoules: <strong><%= datas.finance.moisEcoules || 0 %></strong>
+      <% } %>
+    </p>
+    <p class="mt-1 text-xs text-slate-500">Mois du graphe: <strong><%= datas.activeMonth || '-' %></strong></p>
+    <p class="mt-3 text-xs text-slate-500">
+      Les previsions sont calculees a partir des classes actives, des salaires actifs et des moyennes depenses/retraits.
+    </p>
+  </div>
+
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Actions rapides</h2>
+    <div class="mt-4 space-y-2">
+      <a href="/eleves/inscription" class="btn btn-primary w-full">Inscrire un eleve</a>
+      <a href="/classes/add" class="btn btn-secondary w-full">Ajouter une classe</a>
+      <a href="/finances" class="btn btn-secondary w-full">Ouvrir finances</a>
+    </div>
+  </div>
+</section>
+
+<%- include('../partials/table', {
+  tableTitle: 'Classes recentes',
+  tableActionLabel: 'Voir toutes',
+  tableActionHref: '/classes',
+  headers: ['Nom', 'Cycle', 'Niveau', 'Annee', 'Mensualite', 'Frais inscription', 'Effectif', 'Effectif max', 'Actions'],
+  rows: datas.rows || [],
+  rowPartial: '../partials/rows/classes-row',
+  emptyText: 'Aucune classe enregistree.'
+}) %>
+
+<script src="/js/chart.umd.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Chart === 'undefined') return;
+
+    const depCtx = document.getElementById('depensesChart');
+    const revCtx = document.getElementById('revenusChart');
+
+    if (depCtx) {
+      new Chart(depCtx, {
+        type: 'radar',
+        data: {
+          labels: ['Mensuel', 'Cumule'],
+          datasets: [
+            {
+              label: 'Prevision',
+              data: [
+                <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.forecastMensuel : 0 %>,
+                <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.forecastCumule : 0 %>
+              ],
+              backgroundColor: 'rgba(244, 63, 94, 0.25)',
+              borderColor: '#e11d48',
+              borderWidth: 2,
+              pointRadius: 3,
+              pointBackgroundColor: '#e11d48'
+            },
+            {
+              label: 'Actuel',
+              data: [
+                <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.actualMensuel : 0 %>,
+                <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.actualCumule : 0 %>
+              ],
+              backgroundColor: 'rgba(14, 165, 233, 0.22)',
+              borderColor: '#0284c7',
+              borderWidth: 2,
+              pointRadius: 3,
+              pointBackgroundColor: '#0284c7'
+            }
+          ]
+        },
+        options: {
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              beginAtZero: true,
+              angleLines: { color: '#e2e8f0' },
+              grid: { color: '#e2e8f0' },
+              pointLabels: { color: '#334155' }
+            }
+          }
+        }
+      });
+    }
+
+    if (revCtx) {
+      new Chart(revCtx, {
+      type: 'line',
+      data: {
+        labels: ['Mensuel', 'Cumule'],
+        datasets: [
+          {
+            label: 'Prevision',
+            data: [
+              <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.forecastMensuel : 0 %>,
+              <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.forecastCumule : 0 %>
+            ],
+            backgroundColor: 'rgba(16, 185, 129, 0.20)',
+            borderColor: '#059669',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3
+          },
+          {
+            label: 'Actuel',
+            data: [
+              <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.actualMensuel : 0 %>,
+              <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.actualCumule : 0 %>
+            ],
+            backgroundColor: 'rgba(99, 102, 241, 0.18)',
+            borderColor: '#4f46e5',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3
+          }
+        ]
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: {
+          y: { grid: { color: '#e2e8f0' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+    }
+  });
+</script>

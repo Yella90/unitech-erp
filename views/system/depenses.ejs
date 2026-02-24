@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><%- include('../../partials/head') %><title>Gestion des depenses</title></head>
+<body class="bg-gray-100 p-6">
+<div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+  <%
+    const rows = Array.isArray(depenses) ? depenses : [];
+    const grouped = {};
+    let totalDepenses = 0;
+    rows.forEach((d) => {
+      const category = (d && d.categorie ? String(d.categorie) : "Non classee").trim() || "Non classee";
+      const amount = Number(d && d.montant ? d.montant : 0);
+      grouped[category] = (grouped[category] || 0) + amount;
+      totalDepenses += amount;
+    });
+    const chartLabels = Object.keys(grouped);
+    const chartData = chartLabels.map((k) => grouped[k]);
+  %>
+
+  <h1 class="text-2xl font-bold mb-4">Gestion des depenses</h1>
+  <p class="text-sm text-gray-600 mb-4">Total depenses enregistrees: <strong><%= Number(totalDepenses || 0).toLocaleString('fr-FR') %> FCFA</strong></p>
+
+  <form method="POST" action="/depenses" class="grid grid-cols-1 md:grid-cols-7 gap-2 mb-4">
+    <select class="border p-2 rounded" name="categorie" required>
+      <option value="">Selectionner categorie</option>
+      <option value="Loyer">Loyer</option>
+      <option value="Fournitures">Fournitures</option>
+      <option value="Transport">Transport</option>
+      <option value="Maintenance">Maintenance</option>
+      <option value="Eau et electricite">Eau et electricite</option>
+      <option value="Internet et communication">Internet et communication</option>
+      <option value="Evenements">Evenements</option>
+      <option value="Administration">Administration</option>
+      <option value="Securite">Securite</option>
+      <option value="Autre">Autre</option>
+    </select>
+    <input class="border p-2 rounded" name="motif" placeholder="Motif" required>
+    <input class="border p-2 rounded" name="description" placeholder="Description">
+    <input class="border p-2 rounded" type="number" name="montant" placeholder="Montant" required>
+    <input class="border p-2 rounded" type="date" name="date_depenses">
+    <input class="border p-2 rounded" name="valide_par" placeholder="Valide par">
+    <button class="bg-blue-600 text-white rounded">Ajouter</button>
+  </form>
+
+  <div class="border rounded p-4 mb-5">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="font-semibold">Graphe des depenses par categorie</h2>
+      <span class="text-xs text-gray-500"><%= rows.length %> ligne(s)</span>
+    </div>
+    <% if (!chartLabels.length) { %>
+      <p class="text-sm text-gray-500">Aucune depense pour afficher le graphe.</p>
+    <% } else { %>
+      <div style="height:320px;">
+        <canvas id="depensesByCategoryChart"></canvas>
+      </div>
+    <% } %>
+  </div>
+
+  <table class="w-full text-sm"><thead><tr><th>Categorie</th><th>Motif</th><th>Montant</th><th>Date</th><th>Valide par</th><th></th></tr></thead><tbody>
+  <% depenses.forEach(d => { %><tr class="border-t"><td><%= d.categorie || '' %></td><td><%= d.motif %></td><td><%= d.montant %></td><td><%= d.date_depenses || '' %></td><td><%= d.valide_par || '' %></td><td><form method="POST" action="/depenses/delete/<%= d.id %>"><button class="text-red-600">Supprimer</button></form></td></tr><% }) %>
+  </tbody></table>
+</div>
+<script src="/js/chart.umd.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (typeof Chart === "undefined") return;
+    const el = document.getElementById("depensesByCategoryChart");
+    if (!el) return;
+
+    const labels = <%- JSON.stringify(chartLabels) %>;
+    const data = <%- JSON.stringify(chartData) %>;
+
+    new Chart(el, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{
+          label: "Depenses",
+          data,
+          backgroundColor: [
+            "#2563eb", "#0d9488", "#16a34a", "#eab308", "#f97316",
+            "#dc2626", "#7c3aed", "#0891b2", "#4b5563", "#db2777"
+          ],
+          borderColor: "#ffffff",
+          borderWidth: 2
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                const value = Number(ctx.raw || 0).toLocaleString("fr-FR");
+                return `${ctx.label}: ${value} FCFA`;
+              }
+            }
+          }
+        }
+      }
+    });
+  });
+</script>
+</body>
+</html>

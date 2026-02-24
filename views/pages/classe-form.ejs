@@ -1,0 +1,80 @@
+<section class="card-shell p-6 max-w-3xl">
+  <h2 class="text-lg font-semibold text-slate-900">Nouvelle classe</h2>
+  <p class="mt-1 text-sm text-slate-500">Renseigne les informations pour creer une classe.</p>
+
+  <form method="POST" action="/classes/add" class="mt-5 grid gap-4 md:grid-cols-2">
+    <div><label class="form-label">Nom de classe</label><input class="form-input" type="text" name="nom" placeholder="Ex: 6eme A, 11eme C, Terminale D" required /></div>
+    <div>
+      <label class="form-label">Cycle</label>
+      <select class="form-input" name="cycle" id="cycle-select" required>
+        <option value="">Selectionner</option>
+        <option value="primaire">Primaire</option>
+        <option value="secondaire">Secondaire</option>
+        <option value="lycee">Lycee</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Niveau</label>
+      <select class="form-input" name="niveau" id="niveau-select" required disabled>
+        <option value="">Choisir d'abord un cycle</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Annee scolaire (en cours)</label>
+      <input class="form-input" name="annee" value="<%= activeSchoolYear || '' %>" readonly required />
+    </div>
+    <div><label class="form-label">Mensualite (FCFA)</label><input class="form-input" type="number" name="mensuel" required /></div>
+    <div><label class="form-label">Frais inscription (FCFA)</label><input class="form-input" type="number" name="frais_inscriptioin" required /></div>
+    <div><label class="form-label">Effectif max</label><input class="form-input" type="number" name="effectif_max" min="1" value="50" required /></div>
+    <div class="md:col-span-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <a href="/classes" class="btn btn-secondary w-full sm:w-auto">Annuler</a>
+      <button type="submit" class="btn btn-primary w-full sm:w-auto">Creer la classe</button>
+    </div>
+  </form>
+</section>
+
+<script>
+  (() => {
+    const cycleSelect = document.getElementById("cycle-select");
+    const niveauSelect = document.getElementById("niveau-select");
+    if (!cycleSelect || !niveauSelect) return;
+
+    const levels = {
+      primaire: ["jardin", "1ere", "2eme", "3eme", "4eme", "5eme", "6eme"],
+      secondaire: ["7eme", "8eme", "9eme"],
+      lycee: ["10eme", "11eme", "terminale"]
+    };
+
+    const labels = {
+      jardin: "Jardin",
+      "1ere": "1ere",
+      "2eme": "2eme",
+      "3eme": "3eme",
+      "4eme": "4eme",
+      "5eme": "5eme",
+      "6eme": "6eme",
+      "7eme": "7eme",
+      "8eme": "8eme",
+      "9eme": "9eme",
+      "10eme": "10eme",
+      "11eme": "11eme (Series)",
+      terminale: "Terminale (Series)"
+    };
+
+    const renderNiveaux = () => {
+      const cycle = String(cycleSelect.value || "");
+      const options = levels[cycle] || [];
+      if (!options.length) {
+        niveauSelect.innerHTML = "<option value=''>Choisir d'abord un cycle</option>";
+        niveauSelect.disabled = true;
+        return;
+      }
+      niveauSelect.disabled = false;
+      niveauSelect.innerHTML = "<option value=''>Selectionner</option>" + options
+        .map((value) => `<option value="${value}">${labels[value] || value}</option>`)
+        .join("");
+    };
+
+    cycleSelect.addEventListener("change", renderNiveaux);
+  })();
+</script>

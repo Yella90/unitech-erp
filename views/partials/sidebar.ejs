@@ -1,0 +1,35 @@
+<aside id="app-sidebar" class="sidebar-shell fixed inset-y-0 left-0 z-40 w-72 -translate-x-full border-r border-slate-200 bg-white/95 backdrop-blur transition-transform duration-300 lg:translate-x-0">
+  <div class="flex h-full flex-col">
+    <div class="flex items-center gap-3 border-b border-slate-200 px-6 py-5">
+      <div class="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-white font-bold">S</div>
+      <div>
+        <p class="text-xs uppercase tracking-wide text-slate-400">School ERP</p>
+        <p class="font-semibold text-slate-800"><%= currentSchoolName || 'School' %></p>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+      <a href="/vitrine" class="nav-link">Page vitrine</a>
+      <a href="/dashboard" class="nav-link <%= activeNav === 'dashboard' ? 'active' : '' %>">Dashboard</a>
+      <a href="/setup/classes" class="nav-link <%= activeNav === 'setup' ? 'active' : '' %>">Setup rapide</a>
+      <a href="/classes" class="nav-link <%= activeNav === 'classes' ? 'active' : '' %>">Classes</a>
+      <a href="/eleves/affichage" class="nav-link <%= activeNav === 'eleves' ? 'active' : '' %>">Eleves</a>
+      <a href="/enseignants" class="nav-link <%= activeNav === 'enseignants' ? 'active' : '' %>">Enseignants</a>
+      <a href="/personnel" class="nav-link <%= activeNav === 'personnel' ? 'active' : '' %>">Personnel</a>
+      <a href="/matieres" class="nav-link <%= activeNav === 'matieres' ? 'active' : '' %>">Matieres</a>
+      <a href="/affectations" class="nav-link <%= activeNav === 'affectations' ? 'active' : '' %>">Affectations</a>
+      <a href="/emplois" class="nav-link <%= activeNav === 'emplois' ? 'active' : '' %>">Emplois du temps</a>
+      <a href="/notes" class="nav-link <%= activeNav === 'notes' ? 'active' : '' %>">Notes & Bulletins</a>
+      <a href="/transfers/incoming" class="nav-link <%= activeNav === 'transfers' ? 'active' : '' %>">Transferts eleves</a>
+      <a href="/notifications" class="nav-link <%= activeNav === 'notifications' ? 'active' : '' %>">Retards paiements</a>
+      <a href="/finances" class="nav-link <%= activeNav === 'finances' ? 'active' : '' %>">Finances</a>
+      <a href="/salaires" class="nav-link <%= activeNav === 'salaires' ? 'active' : '' %>">Salaires</a>
+      <a href="/depenses" class="nav-link <%= activeNav === 'depenses' ? 'active' : '' %>">Depenses</a>
+      <a href="/tresorerie" class="nav-link <%= activeNav === 'tresorerie' ? 'active' : '' %>">Tresorerie</a>
+      <a href="/utilisateurs" class="nav-link <%= activeNav === 'users' ? 'active' : '' %>">Utilisateurs & Roles</a>
+      <a href="/rapports" class="nav-link <%= activeNav === 'rapports' ? 'active' : '' %>">Rapports</a>
+      <a href="/administration" class="nav-link <%= activeNav === 'administration' ? 'active' : '' %>">Administration</a>
+    </nav>
+  </div>
+</aside>
+<div id="sidebar-backdrop" class="fixed inset-0 z-30 hidden bg-slate-900/40 lg:hidden"></div>

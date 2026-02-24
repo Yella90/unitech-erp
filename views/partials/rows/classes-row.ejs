@@ -1,0 +1,15 @@
+<tr class="transition hover:bg-slate-50/70">
+  <td class="px-5 py-3 font-medium text-slate-700"><%= row.nom %></td>
+  <td class="px-5 py-3"><span class="badge"><%= row.cycle || '-' %></span></td>
+  <td class="px-5 py-3"><span class="badge"><%= row.niveau || '-' %></span></td>
+  <td class="px-5 py-3"><%= row.annee || '-' %></td>
+  <td class="px-5 py-3"><%= row.mensuel || 0 %> FCFA</td>
+  <td class="px-5 py-3"><%= row.frais_inscription || 0 %> FCFA</td>
+  <td class="px-5 py-3"><%= row.effectif || 0 %></td>
+  <td class="px-5 py-3"><%= row.effectif_max || 0 %></td>
+  <td class="px-5 py-3 text-right">
+    <form action="/classes/delete/<%= row.id %>" method="POST" class="inline" data-confirm="Supprimer cette classe ?">
+      <button class="btn btn-danger btn-sm" type="submit">Supprimer</button>
+    </form>
+  </td>
+</tr>

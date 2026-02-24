@@ -1,0 +1,79 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Assistant setup - Etape 2/3: Eleves</h2>
+    <p class="mt-1 text-sm text-slate-500">Ajout manuel, import Excel/CSV avec apercu, ou import photo OCR.</p>
+  </div>
+
+  <div class="grid gap-5 lg:grid-cols-2">
+    <div class="card-shell p-5">
+      <h3 class="font-semibold">Ajout manuel rapide</h3>
+      <form method="POST" action="/setup/eleves/manual" class="mt-4 grid gap-3 md:grid-cols-2">
+        <div><label class="form-label">Nom</label><input class="form-input" name="nom" required /></div>
+        <div><label class="form-label">Prenom</label><input class="form-input" name="prenom" required /></div>
+        <div><label class="form-label">Sexe</label><select class="form-input" name="sexe"><option value="">-</option><option value="M">M</option><option value="F">F</option></select></div>
+        <div><label class="form-label">Date naissance</label><input type="date" class="form-input" name="dateNaissance" /></div>
+        <div>
+          <label class="form-label">Classe</label>
+          <select class="form-input" name="classe" required>
+            <option value="">Selectionner</option>
+            <% (classes || []).forEach((c) => { %><option value="<%= c.nom %>"><%= c.nom %></option><% }) %>
+          </select>
+        </div>
+        <div><label class="form-label">Telephone parent</label><input class="form-input" name="telparent" /></div>
+        <div class="md:col-span-2"><button class="btn btn-primary" type="submit">Ajouter eleve</button></div>
+      </form>
+    </div>
+
+    <div class="card-shell p-5 space-y-5">
+      <div>
+        <h3 class="font-semibold">Import Excel / CSV</h3>
+        <p class="mt-1 text-xs text-slate-500">Colonnes: Nom | Prenom | Sexe | Date_naissance | Classe | Matricule (optionnel). Date acceptee: AAAA-MM-JJ, JJ/MM/AAAA, JJ-MM-AAAA.</p>
+        <form method="POST" action="/setup/eleves/import/excel/preview" enctype="multipart/form-data" class="mt-3 space-y-3">
+          <input type="file" class="form-input" name="eleves_file" accept=".xlsx,.xls,.csv" required />
+          <button class="btn btn-primary" type="submit">Apercu import Excel</button>
+        </form>
+      </div>
+      <div>
+        <h3 class="font-semibold">Import photo OCR</h3>
+        <p class="mt-1 text-xs text-slate-500">Format attendu par ligne: Nom;Prenom;Sexe;Date_naissance;Classe</p>
+        <form method="POST" action="/setup/eleves/import/photo/preview" enctype="multipart/form-data" class="mt-3 space-y-3">
+          <input type="file" class="form-input" name="eleves_photo" accept="image/*" required />
+          <button class="btn btn-secondary" type="submit">Apercu OCR</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <% if (previewErrors && previewErrors.length) { %>
+    <div class="card-shell p-5">
+      <h3 class="font-semibold text-rose-700">Erreurs de validation</h3>
+      <ul class="mt-2 list-disc pl-5 text-sm text-rose-700">
+        <% previewErrors.forEach((e) => { %><li><%= e %></li><% }) %>
+      </ul>
+    </div>
+  <% } %>
+
+  <% if (previewRows && previewRows.length) { %>
+    <div class="card-shell p-5">
+      <h3 class="font-semibold">Apercu avant insertion (<%= previewRows.length %> lignes valides)</h3>
+      <div class="mt-3 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-slate-200 text-slate-500"><th class="px-3 py-2 text-left">Nom</th><th class="px-3 py-2 text-left">Prenom</th><th class="px-3 py-2 text-left">Sexe</th><th class="px-3 py-2 text-left">Classe</th><th class="px-3 py-2 text-left">Naissance</th></tr></thead>
+          <tbody>
+            <% previewRows.forEach((r) => { %>
+              <tr class="border-b border-slate-100"><td class="px-3 py-2"><%= r.nom %></td><td class="px-3 py-2"><%= r.prenom %></td><td class="px-3 py-2"><%= r.sexe || '-' %></td><td class="px-3 py-2"><%= r.classe %></td><td class="px-3 py-2"><%= r.dateNaissance || '-' %></td></tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <form method="POST" action="/setup/eleves/import/commit" class="mt-4">
+        <input type="hidden" name="preview_rows_json" value="<%= encodeURIComponent(JSON.stringify(previewRows || [])) %>" />
+        <button class="btn btn-primary" type="submit">Confirmer insertion</button>
+      </form>
+    </div>
+  <% } %>
+
+  <div class="card-shell p-5">
+    <a href="/setup/notes" class="btn btn-secondary">Passer a l'etape 3: Notes</a>
+  </div>
+</section>

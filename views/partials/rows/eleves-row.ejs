@@ -1,0 +1,37 @@
+<tr class="transition hover:bg-slate-50/70">
+  <td class="px-5 py-3">
+    <div class="flex items-center gap-2">
+      <input
+        class="h-8 w-28 rounded-md border border-slate-200 bg-slate-50 px-2 text-xs font-medium text-slate-700"
+        value="<%= row.matricule %>"
+        readonly
+        onclick="this.select()"
+        aria-label="Matricule"
+      />
+      <button
+        type="button"
+        class="btn btn-secondary btn-sm"
+        onclick="(async()=>{const i=this.parentElement.querySelector('[aria-label=Matricule]'); if(!i)return; const v=i.value||''; try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(v);}else{i.select();document.execCommand('copy');} const b=this; const p=b.textContent; b.textContent='Copie'; setTimeout(()=>{b.textContent=p;},900);}catch(_){}})()"
+      >
+        Copier
+      </button>
+    </div>
+  </td>
+  <td class="px-5 py-3"><%= row.nom %> <%= row.prenom %></td>
+  <td class="px-5 py-3"><%= row.classe || '-' %></td>
+  <td class="px-5 py-3"><%= row.dateNaissance || '-' %></td>
+  <td class="px-5 py-3"><span class="badge <%= row.statut === 'inactif' ? 'badge-warn' : 'badge-ok' %>"><%= row.statut || 'actif' %></span></td>
+  <td class="px-5 py-3 text-right space-x-2">
+    <a href="/eleves/profil/<%= row.matricule %>" class="btn btn-secondary btn-sm">Profil</a>
+    <% if (row.student_id) { %>
+      <a href="/students/<%= row.student_id %>/history" class="btn btn-secondary btn-sm">Historique</a>
+    <% } %>
+    <% if (currentUser && currentUser.role === 'school_admin') { %>
+      <a href="/transfers/request/<%= row.matricule %>" class="btn btn-secondary btn-sm">Demander transfert</a>
+    <% } %>
+    <a href="/eleves/edit/<%= row.matricule %>" class="btn btn-secondary btn-sm">Modifier</a>
+    <form action="/eleves/delete/<%= row.matricule %>" method="POST" class="inline" data-confirm="Supprimer cet eleve ?">
+      <button class="btn btn-danger btn-sm" type="submit">Supprimer</button>
+    </form>
+  </td>
+</tr>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="3">
+<link href="/css/output.css" rel="stylesheet">
+
+    <title>Page de connexion</title>
+</head>
+<body class="bg-gray-100 ">
+     <div class="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto">
+        <h3>Connexion</h3>
+
+      <form method="POST" action="/eleves/add" class="space-y-4">
+
+        <!-- Maricule -->
+        <div>
+          <label class="block font-medium mb-1">Matricule <span class="text-red-500">*</span></label>
+          <input type="text" name="matricule"  class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <!-- Mots de passe -->
+        <div>
+          <label class="block font-medium mb-1">Mots de passe <span class="text-red-500">*</span></label>
+          <input type="text" name="mots_passe" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500">
+        </div>
+        <input class="bg-green-100 hover:text-red-500 p-4" type="submit" value="Connexion">
+
+
+      </form>
+
+    </div>
+    
+</body>
+</html>

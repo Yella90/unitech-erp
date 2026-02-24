@@ -1,0 +1,56 @@
+<section class="card-shell p-6 max-w-4xl">
+  <h2 class="text-lg font-semibold text-slate-900"><%= isEdit ? 'Modifier un eleve' : 'Inscrire un eleve' %></h2>
+  <p class="mt-1 text-sm text-slate-500">Toutes les donnees restent isolees par ecole.</p>
+
+  <% if (!isEdit && overflowPrompt) { %>
+    <div class="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <p class="font-medium"><%= overflowPrompt.message %></p>
+      <% if (overflowPrompt.suggestedClassName) { %>
+        <p class="mt-1">Nouvelle classe proposee: <strong><%= overflowPrompt.suggestedClassName %></strong></p>
+      <% } %>
+      <p class="mt-1">Validez le formulaire pour confirmer la creation automatique et terminer l'inscription.</p>
+    </div>
+  <% } %>
+
+  <form method="POST" enctype="multipart/form-data" action="<%= isEdit ? '/eleves/edit/' + old.matricule : '/eleves/add' %>" class="mt-5 grid gap-4 md:grid-cols-2">
+    <% if (!isEdit && overflowPrompt) { %>
+      <input type="hidden" name="confirm_overflow" value="1" />
+    <% } %>
+    <div><label class="form-label">Nom</label><input class="form-input" type="text" name="nom" value="<%= old?.nom || '' %>" required /></div>
+    <div><label class="form-label">Prenom</label><input class="form-input" type="text" name="prenom" value="<%= old?.prenom || '' %>" required /></div>
+    <div><label class="form-label">Date naissance</label><input class="form-input" type="date" name="dateNaissance" value="<%= old?.dateNaissance || '' %>" required /></div>
+    <div>
+      <label class="form-label">Classe</label>
+      <select class="form-input" name="classe" required>
+        <option value="">Selectionner</option>
+        <% classes.forEach((cl) => { %>
+          <option value="<%= cl.nom %>" <%= old?.classe === cl.nom ? 'selected' : '' %>>
+            <%= cl.nom %> (<%= Number(cl.effectif || 0) %>/<%= Number(cl.effectif_max || 0) %>)
+          </option>
+        <% }) %>
+      </select>
+    </div>
+    <div><label class="form-label">Nom parent</label><input class="form-input" type="text" name="nomparent" value="<%= old?.nomParent || old?.nomparent || '' %>" /></div>
+    <div><label class="form-label">Telephone parent</label><input class="form-input" type="tel" name="telparent" value="<%= old?.telparent || '' %>" required /></div>
+    <div>
+      <label class="form-label">Photo de profil (fichier)</label>
+      <input type="hidden" name="existing_photo_profil" value="<%= old?.photo_profil || '' %>" />
+      <input class="form-input" type="file" name="photo_profil" accept="image/jpeg,image/png,image/webp" />
+      <% if (old?.photo_profil) { %>
+        <p class="mt-1 text-xs text-slate-500">Actuel: <a href="<%= old.photo_profil %>" target="_blank" class="text-indigo-600">voir fichier</a></p>
+      <% } %>
+    </div>
+    <div>
+      <label class="form-label">Acte de naissance (fichier)</label>
+      <input type="hidden" name="existing_photo_acte_naissance" value="<%= old?.photo_acte_naissance || '' %>" />
+      <input class="form-input" type="file" name="photo_acte_naissance" accept="image/jpeg,image/png,image/webp" />
+      <% if (old?.photo_acte_naissance) { %>
+        <p class="mt-1 text-xs text-slate-500">Actuel: <a href="<%= old.photo_acte_naissance %>" target="_blank" class="text-indigo-600">voir fichier</a></p>
+      <% } %>
+    </div>
+    <div class="md:col-span-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <a href="/eleves/liste" class="btn btn-secondary w-full sm:w-auto">Annuler</a>
+      <button type="submit" class="btn btn-primary w-full sm:w-auto"><%= isEdit ? 'Enregistrer' : (overflowPrompt ? 'Confirmer et inscrire' : 'Inscrire') %></button>
+    </div>
+  </form>
+</section>

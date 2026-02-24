@@ -1,0 +1,82 @@
+/* Minimal layout styles for the requested accueil structure */
+body {
+  margin: 0;
+  background: #f3f4f6;
+  font-family: Arial, sans-serif;
+}
+
+.notifi {
+  max-width: 960px;
+  margin: 12px auto;
+}
+
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 260px;
+  height: 100vh;
+  background: #16a34a;
+  color: #fff;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+nav .profile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+nav .links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+nav .links a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.body {
+  margin-left: 260px;
+  min-height: 100vh;
+}
+
+.head {
+  background: #fff;
+  padding: 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.head a {
+  color: #111827;
+  text-decoration: none;
+}
+
+.logout-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #dc2626;
+  color: #fff;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  nav {
+    position: static;
+    width: 100%;
+    height: auto;
+  }
+
+  .body {
+    margin-left: 0;
+  }
+}
