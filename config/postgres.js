@@ -1,9 +1,11 @@
 const { Pool } = require("pg");
 
 function parseFamily() {
-  const raw = Number(process.env.PG_FAMILY || 4);
-  if (raw === 4 || raw === 6) return raw;
-  return 4;
+  const raw = String(process.env.PG_FAMILY || "").trim().toLowerCase();
+  if (!raw || raw === "0" || raw === "auto") return 0;
+  const family = Number(raw);
+  if (family === 4 || family === 6) return family;
+  return 0;
 }
 
 function buildPgConfig() {
