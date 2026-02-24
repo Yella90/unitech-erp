@@ -2,13 +2,16 @@ const usePostgres = String(process.env.DB_CLIENT || "").trim().toLowerCase() ===
 if (usePostgres) {
   module.exports = require("./db.postgres-adapter");
 } else {
+const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 
-const db = new sqlite3.Database("./database.sqlite", (err) => {
+const sqlitePath = path.resolve(__dirname, "..", "database.sqlite");
+
+const db = new sqlite3.Database(sqlitePath, (err) => {
   if (err) {
     console.error("Database connection error:", err.message);
   } else {
-    console.log("SQLite connected");
+    console.log(`SQLite connected (${sqlitePath})`);
   }
 });
 
