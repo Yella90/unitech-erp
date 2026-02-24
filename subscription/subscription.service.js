@@ -111,7 +111,12 @@ const SubscriptionService = {
   },
 
   listPlans: async () => {
-    return SubscriptionModel.listPlans();
+    let plans = await SubscriptionModel.listPlans();
+    if (!plans || plans.length === 0) {
+      await SubscriptionModel.seedDefaultPlansIfMissing();
+      plans = await SubscriptionModel.listPlans();
+    }
+    return plans;
   },
 
   getLatestSchoolSubscription: async (schoolId) => {

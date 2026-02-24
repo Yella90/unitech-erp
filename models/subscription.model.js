@@ -1,5 +1,38 @@
 const { get, all, run } = require("../utils/dbAsync");
 
+const DEFAULT_PLANS = [
+  {
+    code: "basic",
+    name: "Basic",
+    max_students: 1000000,
+    max_teachers: 1000000,
+    finance_enabled: 1,
+    price_monthly: 15000,
+    price_annual: 153000,
+    annual_discount_percent: 15
+  },
+  {
+    code: "pro",
+    name: "Intermediaire (Smart)",
+    max_students: 1000000,
+    max_teachers: 1000000,
+    finance_enabled: 1,
+    price_monthly: 30000,
+    price_annual: 306000,
+    annual_discount_percent: 15
+  },
+  {
+    code: "premium",
+    name: "Premium",
+    max_students: 1000000,
+    max_teachers: 1000000,
+    finance_enabled: 1,
+    price_monthly: 60000,
+    price_annual: 612000,
+    annual_discount_percent: 15
+  }
+];
+
 const SubscriptionModel = {
   getPlanByCode: async (code) => {
     return get("SELECT * FROM subscription_plans WHERE code = ?", [code]);
@@ -81,6 +114,34 @@ const SubscriptionModel = {
 
   listPlans: async () => {
     return all("SELECT * FROM subscription_plans ORDER BY price_monthly ASC");
+  },
+
+  seedDefaultPlansIfMissing: async () => {
+    for (const plan of DEFAULT_PLANS) {
+      // Works on both SQLite and PostgreSQL without dialect-specific UPSERT syntax.
+      await run(
+        `
+        INSERT INTO subscription_plans (
+          code, name, max_students, max_teachers, finance_enabled, price_monthly, price_annual, annual_discount_percent
+        )
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?
+        WHERE NOT EXISTS (
+          SELECT 1 FROM subscription_plans WHERE code = ?
+        )
+        `,
+        [
+          plan.code,
+          plan.name,
+          plan.max_students,
+          plan.max_teachers,
+          plan.finance_enabled,
+          plan.price_monthly,
+          plan.price_annual,
+          plan.annual_discount_percent,
+          plan.code
+        ]
+      );
+    }
   },
 
   updateSchoolPlan: async (schoolId, planCode) => {
