@@ -442,6 +442,16 @@ async function initPostgresSchema() {
     // eslint-disable-next-line no-await-in-loop
     await pool.query(sql);
   }
+
+  // Keep SERIAL/BIGSERIAL sequence aligned when rows are inserted with explicit ids.
+  // Prevents errors like: duplicate key value violates unique constraint "schools_pkey".
+  await pool.query(`
+    SELECT setval(
+      pg_get_serial_sequence('schools', 'id'),
+      COALESCE((SELECT MAX(id) FROM schools), 1),
+      true
+    )
+  `);
 }
 
 initPostgresSchema()
