@@ -3,6 +3,7 @@ const db = require("../../config/db");
 const { run, get } = require("../../utils/dbAsync");
 const SchoolModel = require("../../models/schools.model");
 const UserModel = require("../../models/users.model");
+const pool = require("../../config/postgres"); // chemin selon ton projet
 const usePostgres = process.env.DB_TYPE === "postgres"; 
 
 const SALT_ROUNDS = 10;
@@ -55,6 +56,7 @@ const AuthService = {
     const passwordHash = await bcrypt.hash(adminPassword, SALT_ROUNDS);
 
     await run("BEGIN TRANSACTION");
+    pool.query("BEGIN");
 
     try {
       const schoolInsert = await SchoolModel.create({
@@ -125,6 +127,7 @@ const AuthService = {
 }
 
       await run("COMMIT");
+      pool.query("COMMIT");
 
       const createdAdmin = await UserModel.findByEmail(adminEmail);
       return createdAdmin;
