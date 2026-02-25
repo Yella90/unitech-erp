@@ -14,7 +14,10 @@
     <input class="border p-2 rounded" name="promoter_name" value="<%= school?.promoter_name || '' %>" placeholder="Nom promoteur">
     <input class="border p-2 rounded" name="director_name" value="<%= school?.director_name || '' %>" placeholder="Nom directeur">
     <input class="border p-2 rounded md:col-span-2" name="logo_url" value="<%= school?.logo_url || '' %>" placeholder="Logo (URL image)">
+    <label for="">La date de le rentrer scolaire</label>
     <input class="border p-2 rounded" type="date" name="daterentrer" value="<%= school?.daterentrer || '' %>" placeholder="Date rentree scolaire">
+    <label for="">ANNEE scolaire</label>
+
     <select class="border p-2 rounded" name="current_school_year">
       <option value="">Annee scolaire active</option>
       <% (schoolYears || []).forEach((sy) => { %>

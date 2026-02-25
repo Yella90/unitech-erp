@@ -437,6 +437,7 @@ async function initPostgresSchema() {
      VALUES (1, 'Ecole Demo', 'demo@school.local', '', '', 'premium', 1)
      ON CONFLICT (id) DO NOTHING`
   ];
+  
 
   for (const sql of statements) {
     // eslint-disable-next-line no-await-in-loop

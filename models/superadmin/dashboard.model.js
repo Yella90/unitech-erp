@@ -124,16 +124,26 @@ const SuperAdminModel = {
   },
 
   updateSubscriptionStatus: async (subscriptionId, status, actorUserId = null, notes = null) => {
+  if (status === 'active') {
     return run(
-      `
-      UPDATE saas_subscriptions
-      SET status = ?, notes = ?, validated_at = CASE WHEN ? = 'active' THEN CURRENT_TIMESTAMP ELSE validated_at END,
-          validated_by = CASE WHEN ? = 'active' THEN ? ELSE validated_by END
-      WHERE id = ?
-      `,
-      [status, notes, status, status, actorUserId, subscriptionId]
+      `UPDATE saas_subscriptions
+       SET status = $1,
+           notes = $2,
+           validated_at = CURRENT_TIMESTAMP,
+           validated_by = $3
+       WHERE id = $4`,
+      [status, notes, actorUserId, subscriptionId]
     );
-  },
+  } else {
+    return run(
+      `UPDATE saas_subscriptions
+       SET status = $1,
+           notes = $2
+       WHERE id = $3`,
+      [status, notes, subscriptionId]
+    );
+  }
+},
 
   changeSchoolPlan: async (schoolId, planCode) => {
     return run("UPDATE schools SET subscription_plan = ? WHERE id = ?", [planCode, schoolId]);

@@ -20,6 +20,7 @@ exports.index = (req, res) => {
 
   HomeService.indexHome(req.school_id, { selectedMonth }, (err, data) => {
     if (err) {
+      console.error("Erreur dans indexHome:", err);
       req.flash("error", "Erreur chargement dashboard");
       return res.redirect("/classes");
     }

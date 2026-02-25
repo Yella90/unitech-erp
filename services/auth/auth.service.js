@@ -1,17 +1,14 @@
 const bcrypt = require("bcrypt");
-const db = require("../../config/db");
 const { run, get } = require("../../utils/dbAsync");
 const SchoolModel = require("../../models/schools.model");
 const UserModel = require("../../models/users.model");
-const pool = require("../../config/postgres"); // chemin selon ton projet
-const usePostgres = process.env.DB_TYPE === "postgres"; 
-
+const { pool ,query} = require("../../config/postgres"); // PostgreSQL
+const usePostgres = process.env.DB_TYPE === "postgres";
 const SALT_ROUNDS = 10;
 
 async function ensureSuperAdmin() {
   const email = process.env.SUPERADMIN_EMAIL;
   const password = process.env.SUPERADMIN_PASSWORD;
-
   if (!email || !password) return;
 
   const existing = await UserModel.findByEmail(email);
@@ -28,7 +25,20 @@ async function ensureSuperAdmin() {
 }
 
 const AuthService = {
-  ensureSuperAdmin,
+  ensureSuperAdmin: async () => {
+    const email = process.env.SUPERADMIN_EMAIL;
+    const password = process.env.SUPERADMIN_PASSWORD;
+    if (!email || !password) return;
+
+    const existing = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
+    if (existing.rows.length > 0) return;
+
+    const hash = await bcrypt.hash(password, SALT_ROUNDS);
+    await pool.query(
+      "INSERT INTO users (school_id, full_name, email, password_hash, role, is_active) VALUES ($1,$2,$3,$4,$5,$6)",
+      [null, "Super Admin", email, hash, "superadmin", 1]
+    );
+  },
 
   registerSchoolWithAdmin: async (payload) => {
     const {
@@ -43,121 +53,70 @@ const AuthService = {
       adminPassword
     } = payload;
 
-    const existingSchool = await SchoolModel.findByEmail(schoolEmail);
-    if (existingSchool) {
-      throw new Error("Une ecole existe deja avec cet email");
-    }
-
-    const existingAdmin = await UserModel.findByEmail(adminEmail);
-    if (existingAdmin) {
-      throw new Error("Un utilisateur existe deja avec cet email");
-    }
-
-    const passwordHash = await bcrypt.hash(adminPassword, SALT_ROUNDS);
-
-    await run("BEGIN TRANSACTION");
-    pool.query("BEGIN");
-
+    const client = await pool.connect();
     try {
-      const schoolInsert = await SchoolModel.create({
-        name: schoolName,
-        email: schoolEmail,
-        phone: schoolPhone,
-        address: schoolAddress,
-        subscription_plan: subscriptionPlan || "basic"
-      });
+      await client.query("BEGIN");
 
-      const schoolId = schoolInsert.id;
+      // Vérifier si école ou admin existe déjà
+      const existingSchool = await client.query("SELECT * FROM schools WHERE email=$1", [schoolEmail]);
+      if (existingSchool.rows.length) throw new Error("Une école existe déjà avec cet email");
 
-      await UserModel.create({
-        school_id: schoolId,
-        full_name: adminName,
-        email: adminEmail,
-        password_hash: passwordHash,
-        role: "school_admin"
-      });
+      const existingAdmin = await client.query("SELECT * FROM users WHERE email=$1", [adminEmail]);
+      if (existingAdmin.rows.length) throw new Error("Un utilisateur existe déjà avec cet email");
 
-      const plan = await get(
-        "SELECT code, price_monthly, price_annual, annual_discount_percent FROM subscription_plans WHERE code = ?",
-        [subscriptionPlan || "basic"]
+      // Créer l'école
+      const schoolResult = await client.query(
+        "INSERT INTO schools (name,email,phone,address,subscription_plan,is_active) VALUES ($1,$2,$3,$4,$5,1) RETURNING id",
+        [schoolName, schoolEmail, schoolPhone || "", schoolAddress || "", subscriptionPlan || "basic"]
       );
-      const cycle = String(billingCycle || "").trim().toLowerCase() === "annual" ? "annual" : "monthly";
+      const schoolId = schoolResult.rows[0].id;
+
+      // Créer admin
+      const passwordHash = await bcrypt.hash(adminPassword, SALT_ROUNDS);
+      await client.query(
+        "INSERT INTO users (school_id, full_name, email, password_hash, role, is_active) VALUES ($1,$2,$3,$4,'school_admin',1)",
+        [schoolId, adminName, adminEmail, passwordHash]
+      );
+
+      // Abonnement
+      const planResult = await client.query("SELECT code, price_monthly, price_annual FROM subscription_plans WHERE code=$1", [subscriptionPlan || "basic"]);
+      const plan = planResult.rows[0];
+      const cycle = String(billingCycle || "").toLowerCase() === "annual" ? "annual" : "monthly";
       const startsAt = new Date();
       const expiresAt = new Date(startsAt);
-      if (cycle === "annual") {
-        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-      } else {
-        expiresAt.setMonth(expiresAt.getMonth() + 1);
-      }
-      const amount = cycle === "annual"
-        ? Number((plan && (plan.price_annual || Math.round(Number(plan.price_monthly || 0) * 12 * 0.85))) || 0)
-        : Number((plan && plan.price_monthly) || 0);
-      if (usePostgres) {
-  // PostgreSQL : utilise $1, $2, $3...
-  await pool.query(
-    `INSERT INTO saas_subscriptions
-      (school_id, plan_code, amount, billing_cycle, status, starts_at, expires_at, notes)
-     VALUES ($1, $2, $3, $4, 'pending', $5, $6, $7)`,
-    [
-      schoolId,
-      plan ? plan.code : "basic",
-      amount,
-      cycle,
-      startsAt.toISOString().slice(0, 10),
-      expiresAt.toISOString().slice(0, 10),
-      "En attente de validation super admin"
-    ]
-  );
-} else {
-  // SQLite : continue d'utiliser run()
-  await run(
-    `INSERT INTO saas_subscriptions
-      (school_id, plan_code, amount, billing_cycle, status, starts_at, expires_at, notes)
-     VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`,
-    [
-      schoolId,
-      plan ? plan.code : "basic",
-      amount,
-      cycle,
-      startsAt.toISOString().slice(0, 10),
-      expiresAt.toISOString().slice(0, 10),
-      "En attente de validation super admin"
-    ]
-  );
-}
+      if (cycle === "annual") expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      else expiresAt.setMonth(expiresAt.getMonth() + 1);
+      const amount = cycle === "annual" ? (plan?.price_annual || Math.round((plan?.price_monthly || 0) * 12 * 0.85)) : (plan?.price_monthly || 0);
 
-      await run("COMMIT");
-      pool.query("COMMIT");
+      await client.query(
+        `INSERT INTO saas_subscriptions (school_id, plan_code, amount, billing_cycle, status, starts_at, expires_at, notes)
+         VALUES ($1,$2,$3,$4,'pending',$5,$6,$7)`,
+        [schoolId, plan?.code || "basic", amount, cycle, startsAt.toISOString().slice(0,10), expiresAt.toISOString().slice(0,10), "En attente de validation super admin"]
+      );
 
-      const createdAdmin = await UserModel.findByEmail(adminEmail);
-      return createdAdmin;
+      await client.query("COMMIT");
+      return { schoolId, adminEmail };
     } catch (err) {
-      await run("ROLLBACK");
+      await client.query("ROLLBACK");
       throw err;
+    } finally {
+      client.release();
     }
-  },
-
+  }
+  ,
   login: async ({ email, password }) => {
-    const user = await UserModel.findByEmail(email);
-    if (!user) {
-      throw new Error("Identifiants invalides");
-    }
+    const result = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
+    const user = result.rows[0];
+    if (!user) throw new Error("Identifiants invalides");
 
-    if (Number(user.is_active) !== 1) {
-      throw new Error("Compte utilisateur desactive");
-    }
-
-    if (user.role !== "superadmin" && Number(user.school_is_active) !== 1) {
-      throw new Error("Ecole desactivee. Contactez le support");
-    }
+    if (Number(user.is_active) !== 1) throw new Error("Compte utilisateur désactivé");
 
     const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) {
-      throw new Error("Identifiants invalides");
-    }
+    if (!ok) throw new Error("Identifiants invalides");
 
     return user;
   }
 };
+
 
 module.exports = AuthService;
