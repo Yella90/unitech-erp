@@ -3,6 +3,7 @@ const db = require("../../config/db");
 const { run, get } = require("../../utils/dbAsync");
 const SchoolModel = require("../../models/schools.model");
 const UserModel = require("../../models/users.model");
+const usePostgres = process.env.DB_TYPE === "postgres"; 
 
 const SALT_ROUNDS = 10;
 
@@ -89,19 +90,39 @@ const AuthService = {
       const amount = cycle === "annual"
         ? Number((plan && (plan.price_annual || Math.round(Number(plan.price_monthly || 0) * 12 * 0.85))) || 0)
         : Number((plan && plan.price_monthly) || 0);
-      await run(
-        `INSERT INTO saas_subscriptions (school_id, plan_code, amount, billing_cycle, status, starts_at, expires_at, notes)
-         VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`,
-        [
-          schoolId,
-          plan ? plan.code : "basic",
-          amount,
-          cycle,
-          startsAt.toISOString().slice(0, 10),
-          expiresAt.toISOString().slice(0, 10),
-          "En attente de validation super admin"
-        ]
-      );
+      if (usePostgres) {
+  // PostgreSQL : utilise $1, $2, $3...
+  await pool.query(
+    `INSERT INTO saas_subscriptions
+      (school_id, plan_code, amount, billing_cycle, status, starts_at, expires_at, notes)
+     VALUES ($1, $2, $3, $4, 'pending', $5, $6, $7)`,
+    [
+      schoolId,
+      plan ? plan.code : "basic",
+      amount,
+      cycle,
+      startsAt.toISOString().slice(0, 10),
+      expiresAt.toISOString().slice(0, 10),
+      "En attente de validation super admin"
+    ]
+  );
+} else {
+  // SQLite : continue d'utiliser run()
+  await run(
+    `INSERT INTO saas_subscriptions
+      (school_id, plan_code, amount, billing_cycle, status, starts_at, expires_at, notes)
+     VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`,
+    [
+      schoolId,
+      plan ? plan.code : "basic",
+      amount,
+      cycle,
+      startsAt.toISOString().slice(0, 10),
+      expiresAt.toISOString().slice(0, 10),
+      "En attente de validation super admin"
+    ]
+  );
+}
 
       await run("COMMIT");
 
