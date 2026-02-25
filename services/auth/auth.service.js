@@ -64,7 +64,7 @@ const AuthService = {
         subscription_plan: subscriptionPlan || "basic"
       });
 
-      const schoolId = schoolInsert.lastID;
+      const schoolId = schoolInsert.id;
 
       await UserModel.create({
         school_id: schoolId,
