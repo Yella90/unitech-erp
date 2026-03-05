@@ -3,9 +3,17 @@ if (usePostgres) {
   module.exports = require("./db.postgres-adapter");
 } else {
 const path = require("path");
+const fs = require("fs");
 const sqlite3 = require("sqlite3").verbose();
 
-const sqlitePath = path.resolve(__dirname, "..", "database.sqlite");
+const sqlitePath = process.env.SQLITE_PATH
+  ? path.resolve(process.env.SQLITE_PATH)
+  : path.resolve(__dirname, "..", "database.sqlite");
+const minimalBootstrap = String(process.env.DB_MINIMAL_BOOTSTRAP || "0") === "1";
+const sqliteDir = path.dirname(sqlitePath);
+if (!fs.existsSync(sqliteDir)) {
+  fs.mkdirSync(sqliteDir, { recursive: true });
+}
 
 const db = new sqlite3.Database(sqlitePath, (err) => {
   if (err) {
@@ -248,6 +256,70 @@ db.serialize(() => {
   `);
 
   db.run(`
+    CREATE TABLE IF NOT EXISTS sync_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL,
+      table_name TEXT NOT NULL,
+      operation TEXT NOT NULL CHECK(operation IN ('insert', 'update', 'delete')),
+      data TEXT NOT NULL,
+      uuid TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'synced', 'failed')),
+      retry_count INTEGER NOT NULL DEFAULT 0,
+      source_device_id TEXT,
+      version INTEGER NOT NULL DEFAULT 1,
+      last_error TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (school_id) REFERENCES schools(id)
+    )
+  `);
+  db.run(`
+    CREATE INDEX IF NOT EXISTS idx_sync_queue_school_status_created
+    ON sync_queue (school_id, status, created_at ASC)
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS sync_state (
+      table_name TEXT PRIMARY KEY,
+      last_pulled_at TEXT
+    )
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS sync_runtime (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      triggers_disabled INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+  db.run(`
+    INSERT OR IGNORE INTO sync_runtime (id, triggers_disabled)
+    VALUES (1, 0)
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS public_visits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      page_path TEXT NOT NULL,
+      visitor_token TEXT,
+      ip_address TEXT,
+      ip_anonymized TEXT,
+      country_code TEXT,
+      country_name TEXT,
+      region TEXT,
+      city TEXT,
+      latitude REAL,
+      longitude REAL,
+      accuracy_m REAL,
+      source TEXT,
+      user_agent TEXT,
+      referer TEXT,
+      timezone TEXT,
+      locale TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  db.run("CREATE INDEX IF NOT EXISTS idx_public_visits_created ON public_visits (created_at DESC)");
+  db.run("CREATE INDEX IF NOT EXISTS idx_public_visits_page ON public_visits (page_path, created_at DESC)");
+  db.run("CREATE INDEX IF NOT EXISTS idx_public_visits_token ON public_visits (visitor_token)");
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS students (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       uuid TEXT NOT NULL UNIQUE,
@@ -468,6 +540,7 @@ db.serialize(() => {
   ensureColumn("schools", "logo_url", "TEXT");
   ensureColumn("schools", "code_postal", "TEXT");
   ensureColumn("schools", "current_school_year", "TEXT");
+  ensureColumn("schools", "api_key_hash", "TEXT");
   ensureColumn("users", "matricule", "TEXT");
   ensureColumn("users", "phone", "TEXT");
   ensureColumn("schools", "daterentrer", "TEXT");
@@ -497,11 +570,88 @@ db.serialize(() => {
   ensureColumn("notifications", "is_read", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn("notifications", "read_at", "TEXT");
   ensureColumn("notifications", "unique_key", "TEXT");
+  ensureColumn("classes", "uuid", "TEXT");
+  ensureColumn("classes", "updated_at", "TEXT");
+  ensureColumn("classes", "deleted_at", "TEXT");
+  ensureColumn("classes", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("depenses", "uuid", "TEXT");
+  ensureColumn("depenses", "updated_at", "TEXT");
+  ensureColumn("depenses", "deleted_at", "TEXT");
+  ensureColumn("depenses", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("salaires", "uuid", "TEXT");
+  ensureColumn("salaires", "updated_at", "TEXT");
+  ensureColumn("salaires", "deleted_at", "TEXT");
+  ensureColumn("salaires", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("matieres", "uuid", "TEXT");
+  ensureColumn("matieres", "updated_at", "TEXT");
+  ensureColumn("matieres", "deleted_at", "TEXT");
+  ensureColumn("matieres", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("affectations", "uuid", "TEXT");
+  ensureColumn("affectations", "updated_at", "TEXT");
+  ensureColumn("affectations", "deleted_at", "TEXT");
+  ensureColumn("affectations", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("emplois", "uuid", "TEXT");
+  ensureColumn("emplois", "updated_at", "TEXT");
+  ensureColumn("emplois", "deleted_at", "TEXT");
+  ensureColumn("emplois", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("eleves", "uuid", "TEXT");
+  ensureColumn("eleves", "updated_at", "TEXT");
+  ensureColumn("eleves", "deleted_at", "TEXT");
+  ensureColumn("eleves", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("paiements", "uuid", "TEXT");
+  ensureColumn("paiements", "updated_at", "TEXT");
+  ensureColumn("paiements", "deleted_at", "TEXT");
+  ensureColumn("paiements", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("notes", "uuid", "TEXT");
+  ensureColumn("notes", "updated_at", "TEXT");
+  ensureColumn("notes", "deleted_at", "TEXT");
+  ensureColumn("notes", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("enseignants", "uuid", "TEXT");
+  ensureColumn("enseignants", "updated_at", "TEXT");
+  ensureColumn("enseignants", "deleted_at", "TEXT");
+  ensureColumn("enseignants", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("personnel", "uuid", "TEXT");
+  ensureColumn("personnel", "updated_at", "TEXT");
+  ensureColumn("personnel", "deleted_at", "TEXT");
+  ensureColumn("personnel", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("notifications", "uuid", "TEXT");
+  ensureColumn("notifications", "updated_at", "TEXT");
+  ensureColumn("notifications", "deleted_at", "TEXT");
+  ensureColumn("notifications", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("retraits_promoteur", "uuid", "TEXT");
+  ensureColumn("retraits_promoteur", "updated_at", "TEXT");
+  ensureColumn("retraits_promoteur", "deleted_at", "TEXT");
+  ensureColumn("retraits_promoteur", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("saas_subscriptions", "uuid", "TEXT");
+  ensureColumn("saas_subscriptions", "updated_at", "TEXT");
+  ensureColumn("saas_subscriptions", "deleted_at", "TEXT");
+  ensureColumn("saas_subscriptions", "version", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("users", "uuid", "TEXT");
+  ensureColumn("users", "updated_at", "TEXT");
+  ensureColumn("users", "deleted_at", "TEXT");
+  ensureColumn("users", "version", "INTEGER NOT NULL DEFAULT 1");
 
   db.run(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_students_uuid_unique
     ON students (uuid)
   `);
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_classes_uuid_unique ON classes (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_eleves_uuid_unique ON eleves (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_paiements_uuid_unique ON paiements (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_notes_uuid_unique ON notes (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_enseignants_uuid_unique ON enseignants (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_personnel_uuid_unique ON personnel (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_depenses_uuid_unique ON depenses (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_salaires_uuid_unique ON salaires (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_matieres_uuid_unique ON matieres (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_affectations_uuid_unique ON affectations (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_emplois_uuid_unique ON emplois (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_uuid_unique ON notifications (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_retraits_promoteur_uuid_unique ON retraits_promoteur (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_saas_subscriptions_uuid_unique ON saas_subscriptions (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_uuid_unique ON users (uuid) WHERE TRIM(COALESCE(uuid, '')) <> ''");
+  db.run("DROP INDEX IF EXISTS idx_sync_queue_uuid_created_unique");
+  db.run("CREATE INDEX IF NOT EXISTS idx_sync_queue_uuid_created ON sync_queue (uuid, created_at)");
   db.run(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_eleves_school_student_uuid_unique
     ON eleves (school_id, student_uuid)
@@ -550,6 +700,194 @@ db.serialize(() => {
   db.run("UPDATE depenses SET school_id = 1 WHERE school_id IS NULL");
   db.run("UPDATE affectations SET school_id = 1 WHERE school_id IS NULL");
   db.run("UPDATE emplois SET school_id = 1 WHERE school_id IS NULL");
+  db.run("UPDATE classes SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE depenses SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE salaires SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE matieres SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE affectations SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE emplois SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE eleves SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE paiements SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE notes SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE enseignants SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE personnel SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE notifications SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE retraits_promoteur SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE saas_subscriptions SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE users SET uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(uuid, '')) = ''");
+  db.run("UPDATE classes SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE depenses SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE salaires SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE matieres SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE affectations SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE emplois SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE eleves SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE paiements SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE notes SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE enseignants SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE personnel SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE notifications SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE retraits_promoteur SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE saas_subscriptions SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  db.run("UPDATE users SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  // Normalize legacy epoch numeric dates (seconds/milliseconds) into SQLite date/datetime text.
+  db.run(`
+    UPDATE saas_subscriptions
+    SET starts_at = date(
+      datetime(
+        CASE
+          WHEN CAST(starts_at AS REAL) > 10000000000 THEN CAST(starts_at AS REAL) / 1000.0
+          ELSE CAST(starts_at AS REAL)
+        END,
+        'unixepoch'
+      )
+    )
+    WHERE starts_at IS NOT NULL
+      AND TRIM(CAST(starts_at AS TEXT)) GLOB '[0-9]*'
+      AND instr(CAST(starts_at AS TEXT), '-') = 0
+  `);
+  db.run(`
+    UPDATE saas_subscriptions
+    SET expires_at = date(
+      datetime(
+        CASE
+          WHEN CAST(expires_at AS REAL) > 10000000000 THEN CAST(expires_at AS REAL) / 1000.0
+          ELSE CAST(expires_at AS REAL)
+        END,
+        'unixepoch'
+      )
+    )
+    WHERE expires_at IS NOT NULL
+      AND TRIM(CAST(expires_at AS TEXT)) GLOB '[0-9]*'
+      AND instr(CAST(expires_at AS TEXT), '-') = 0
+  `);
+  db.run(`
+    UPDATE saas_subscriptions
+    SET created_at = datetime(
+      CASE
+        WHEN CAST(created_at AS REAL) > 10000000000 THEN CAST(created_at AS REAL) / 1000.0
+        ELSE CAST(created_at AS REAL)
+      END,
+      'unixepoch'
+    )
+    WHERE created_at IS NOT NULL
+      AND TRIM(CAST(created_at AS TEXT)) GLOB '[0-9]*'
+      AND instr(CAST(created_at AS TEXT), '-') = 0
+  `);
+  db.run(`
+    UPDATE saas_subscriptions
+    SET updated_at = datetime(
+      CASE
+        WHEN CAST(updated_at AS REAL) > 10000000000 THEN CAST(updated_at AS REAL) / 1000.0
+        ELSE CAST(updated_at AS REAL)
+      END,
+      'unixepoch'
+    )
+    WHERE updated_at IS NOT NULL
+      AND TRIM(CAST(updated_at AS TEXT)) GLOB '[0-9]*'
+      AND instr(CAST(updated_at AS TEXT), '-') = 0
+  `);
+  db.run(`
+    UPDATE paiements
+    SET date_payement = date(
+      datetime(
+        CASE
+          WHEN CAST(date_payement AS REAL) > 10000000000 THEN CAST(date_payement AS REAL) / 1000.0
+          ELSE CAST(date_payement AS REAL)
+        END,
+        'unixepoch'
+      )
+    )
+    WHERE date_payement IS NOT NULL
+      AND TRIM(CAST(date_payement AS TEXT)) GLOB '[0-9]*'
+      AND instr(CAST(date_payement AS TEXT), '-') = 0
+  `);
+  db.run(`
+    UPDATE paiements
+    SET created_at = datetime(
+      CASE
+        WHEN CAST(created_at AS REAL) > 10000000000 THEN CAST(created_at AS REAL) / 1000.0
+        ELSE CAST(created_at AS REAL)
+      END,
+      'unixepoch'
+    )
+    WHERE created_at IS NOT NULL
+      AND TRIM(CAST(created_at AS TEXT)) GLOB '[0-9]*'
+      AND instr(CAST(created_at AS TEXT), '-') = 0
+  `);
+  db.run(`
+    UPDATE paiements
+    SET updated_at = datetime(
+      CASE
+        WHEN CAST(updated_at AS REAL) > 10000000000 THEN CAST(updated_at AS REAL) / 1000.0
+        ELSE CAST(updated_at AS REAL)
+      END,
+      'unixepoch'
+    )
+    WHERE updated_at IS NOT NULL
+      AND TRIM(CAST(updated_at AS TEXT)) GLOB '[0-9]*'
+      AND instr(CAST(updated_at AS TEXT), '-') = 0
+  `);
+  db.run(`
+    UPDATE depenses
+    SET date_depenses = date(
+      datetime(
+        CASE
+          WHEN CAST(date_depenses AS REAL) > 10000000000 THEN CAST(date_depenses AS REAL) / 1000.0
+          ELSE CAST(date_depenses AS REAL)
+        END,
+        'unixepoch'
+      )
+    )
+    WHERE date_depenses IS NOT NULL
+      AND TRIM(CAST(date_depenses AS TEXT)) GLOB '[0-9]*'
+      AND instr(CAST(date_depenses AS TEXT), '-') = 0
+  `);
+  db.run(`
+    UPDATE salaires
+    SET date_payement = date(
+      datetime(
+        CASE
+          WHEN CAST(date_payement AS REAL) > 10000000000 THEN CAST(date_payement AS REAL) / 1000.0
+          ELSE CAST(date_payement AS REAL)
+        END,
+        'unixepoch'
+      )
+    )
+    WHERE date_payement IS NOT NULL
+      AND TRIM(CAST(date_payement AS TEXT)) GLOB '[0-9]*'
+      AND instr(CAST(date_payement AS TEXT), '-') = 0
+  `);
+  db.run(`
+    UPDATE retraits_promoteur
+    SET date_retrait = date(
+      datetime(
+        CASE
+          WHEN CAST(date_retrait AS REAL) > 10000000000 THEN CAST(date_retrait AS REAL) / 1000.0
+          ELSE CAST(date_retrait AS REAL)
+        END,
+        'unixepoch'
+      )
+    )
+    WHERE date_retrait IS NOT NULL
+      AND TRIM(CAST(date_retrait AS TEXT)) GLOB '[0-9]*'
+      AND instr(CAST(date_retrait AS TEXT), '-') = 0
+  `);
+  db.run("UPDATE classes SET version = COALESCE(version, 1)");
+  db.run("UPDATE depenses SET version = COALESCE(version, 1)");
+  db.run("UPDATE salaires SET version = COALESCE(version, 1)");
+  db.run("UPDATE matieres SET version = COALESCE(version, 1)");
+  db.run("UPDATE affectations SET version = COALESCE(version, 1)");
+  db.run("UPDATE emplois SET version = COALESCE(version, 1)");
+  db.run("UPDATE eleves SET version = COALESCE(version, 1)");
+  db.run("UPDATE paiements SET version = COALESCE(version, 1)");
+  db.run("UPDATE notes SET version = COALESCE(version, 1)");
+  db.run("UPDATE enseignants SET version = COALESCE(version, 1)");
+  db.run("UPDATE personnel SET version = COALESCE(version, 1)");
+  db.run("UPDATE notifications SET version = COALESCE(version, 1)");
+  db.run("UPDATE retraits_promoteur SET version = COALESCE(version, 1)");
+  db.run("UPDATE saas_subscriptions SET version = COALESCE(version, 1)");
+  db.run("UPDATE users SET version = COALESCE(version, 1)");
   db.run("UPDATE eleves SET student_uuid = lower(hex(randomblob(16))) WHERE TRIM(COALESCE(student_uuid, '')) = ''");
   db.run(`
     INSERT INTO students (uuid, nom, prenom, date_naissance, sexe, created_at)
@@ -624,10 +962,14 @@ db.serialize(() => {
       AND NOT EXISTS (SELECT 1 FROM grades g WHERE g.source_note_id = n.id)
   `);
 
-  db.run(`
-    INSERT OR IGNORE INTO schools (id, name, email, phone, address, subscription_plan, is_active)
-    VALUES (1, 'Ecole Demo', 'demo@school.local', '', '', 'premium', 1)
-  `);
+  if (!minimalBootstrap) {
+    db.run(`
+      INSERT OR IGNORE INTO schools (id, name, email, phone, address, subscription_plan, is_active)
+      VALUES (1, 'Ecole Demo', 'demo@school.local', '', '', 'premium', 1)
+    `);
+  }
+
+  installSyncTriggers(db);
 });
 
 function ensureColumn(tableName, columnName, definition) {
@@ -641,4 +983,84 @@ function ensureColumn(tableName, columnName, definition) {
 }
 
 module.exports = db;
+}
+
+function installSyncTriggers(db) {
+  const tables = [
+    "classes",
+    "eleves",
+    "paiements",
+    "notes",
+    "enseignants",
+    "personnel",
+    "depenses",
+    "salaires",
+    "matieres",
+    "affectations",
+    "emplois",
+    "notifications",
+    "retraits_promoteur",
+    "saas_subscriptions",
+    "users"
+  ];
+  for (const tableName of tables) {
+    db.run(`
+      CREATE TRIGGER IF NOT EXISTS trg_${tableName}_sync_insert
+      AFTER INSERT ON ${tableName}
+      WHEN NEW.uuid IS NOT NULL
+       AND NEW.school_id IS NOT NULL
+       AND TRIM(COALESCE(NEW.uuid, '')) <> ''
+       AND (SELECT triggers_disabled FROM sync_runtime WHERE id = 1) = 0
+      BEGIN
+        INSERT INTO sync_queue (
+          school_id, table_name, operation, data, uuid, status, retry_count, source_device_id, version, created_at, updated_at
+        )
+        VALUES (
+          NEW.school_id, '${tableName}', 'insert', '{}', NEW.uuid, 'pending', 0, NULL, COALESCE(NEW.version, 1), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        );
+      END
+    `);
+
+    db.run(`
+      CREATE TRIGGER IF NOT EXISTS trg_${tableName}_sync_update
+      AFTER UPDATE ON ${tableName}
+      WHEN NEW.uuid IS NOT NULL
+       AND NEW.school_id IS NOT NULL
+       AND TRIM(COALESCE(NEW.uuid, '')) <> ''
+       AND (SELECT triggers_disabled FROM sync_runtime WHERE id = 1) = 0
+      BEGIN
+        INSERT INTO sync_queue (
+          school_id, table_name, operation, data, uuid, status, retry_count, source_device_id, version, created_at, updated_at
+        )
+        VALUES (
+          NEW.school_id, '${tableName}', 'update', '{}', NEW.uuid, 'pending', 0, NULL, COALESCE(NEW.version, 1), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        );
+      END
+    `);
+
+    db.run(`
+      CREATE TRIGGER IF NOT EXISTS trg_${tableName}_sync_delete
+      AFTER DELETE ON ${tableName}
+      WHEN OLD.uuid IS NOT NULL
+       AND OLD.school_id IS NOT NULL
+       AND TRIM(COALESCE(OLD.uuid, '')) <> ''
+       AND (SELECT triggers_disabled FROM sync_runtime WHERE id = 1) = 0
+      BEGIN
+        INSERT INTO sync_queue (
+          school_id, table_name, operation, data, uuid, status, retry_count, source_device_id, version, created_at, updated_at
+        )
+        VALUES (
+          OLD.school_id, '${tableName}', 'delete',
+          json_object('deleted_at', CURRENT_TIMESTAMP, 'updated_at', CURRENT_TIMESTAMP),
+          OLD.uuid,
+          'pending',
+          0,
+          NULL,
+          COALESCE(OLD.version, 1),
+          CURRENT_TIMESTAMP,
+          CURRENT_TIMESTAMP
+        );
+      END
+    `);
+  }
 }

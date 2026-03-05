@@ -75,7 +75,7 @@
     <div class="card-shell p-5">
       <h3 class="font-semibold">Import photo OCR</h3>
       <p class="mt-1 text-xs text-slate-500">Format OCR attendu: Matricule;Note (une ligne par eleve)</p>
-      <form method="POST" action="/setup/notes/import/photo" enctype="multipart/form-data" class="mt-3 grid gap-3">
+      <form method="POST" action="/setup/notes/import/photo/preview" enctype="multipart/form-data" class="mt-3 grid gap-3">
         <div class="grid gap-3 md:grid-cols-2">
           <select class="form-input" name="classe" required><option value="">Classe</option><% (classes || []).forEach((c) => { %><option value="<%= c.nom %>"><%= c.nom %></option><% }) %></select>
           <select class="form-input" name="matiere" required><option value="">Matiere</option><% (matieres || []).forEach((m) => { %><option value="<%= m.nom %>"><%= m.nom %></option><% }) %></select>
@@ -84,10 +84,60 @@
           <input class="form-input" name="annee" value="<%= activeSchoolYear || '' %>" placeholder="Annee" required />
           <input type="file" class="form-input" name="notes_photo" accept="image/*" required />
         </div>
-        <button class="btn btn-secondary" type="submit">Importer notes OCR</button>
+        <button class="btn btn-secondary" type="submit">Apercu + correction OCR</button>
       </form>
     </div>
   </div>
+
+  <% if (ocrRawText) { %>
+    <div class="card-shell p-5">
+      <h3 class="font-semibold">Texte OCR brut</h3>
+      <textarea class="form-input mt-3 h-36" readonly><%= ocrRawText %></textarea>
+    </div>
+  <% } %>
+
+  <% if (previewNoteErrors && previewNoteErrors.length) { %>
+    <div class="card-shell p-5">
+      <h3 class="font-semibold text-rose-700">Avertissements OCR</h3>
+      <ul class="mt-2 list-disc pl-5 text-sm text-rose-700">
+        <% previewNoteErrors.forEach((e) => { %><li><%= e %></li><% }) %>
+      </ul>
+    </div>
+  <% } %>
+
+  <% if (previewNoteRows && previewNoteRows.length) { %>
+    <div class="card-shell p-5">
+      <h3 class="font-semibold">Correction manuelle avant insertion (<%= previewNoteRows.length %> lignes)</h3>
+      <div class="mt-3 overflow-x-auto">
+        <table class="w-full text-sm" id="notes-preview-table">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-500">
+              <th class="px-3 py-2 text-left">Matricule</th>
+              <th class="px-3 py-2 text-left">Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% previewNoteRows.forEach((r) => { %>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2"><input class="form-input note-preview-matricule" value="<%= r.matricule || '' %>" /></td>
+                <td class="px-3 py-2"><input type="number" step="0.01" min="0" max="20" class="form-input note-preview-note" value="<%= Number(r.note || 0) %>" /></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <form method="POST" action="/setup/notes/import/commit" id="notes-preview-form" class="mt-4">
+        <input type="hidden" name="classe" value="<%= (noteImportMeta && noteImportMeta.classe) || '' %>" />
+        <input type="hidden" name="matiere" value="<%= (noteImportMeta && noteImportMeta.matiere) || '' %>" />
+        <input type="hidden" name="trimestre" value="<%= (noteImportMeta && noteImportMeta.trimestre) || '1' %>" />
+        <input type="hidden" name="note_type" value="<%= (noteImportMeta && noteImportMeta.note_type) || 'devoir' %>" />
+        <input type="hidden" name="annee" value="<%= (noteImportMeta && noteImportMeta.annee) || '' %>" />
+        <input type="hidden" name="preview_rows_json" id="notes-preview-json" value="" />
+        <button class="btn btn-primary" type="submit">Confirmer import OCR notes</button>
+      </form>
+    </div>
+  <% } %>
 </section>
 
 <script>
@@ -150,5 +200,17 @@
       if (el) el.addEventListener("change", syncPayload);
     });
     syncPayload();
+  })();
+
+  (function () {
+    const form = document.getElementById("notes-preview-form");
+    if (!form) return;
+    form.addEventListener("submit", function () {
+      const rows = Array.from(document.querySelectorAll("#notes-preview-table tbody tr")).map((tr) => ({
+        matricule: (tr.querySelector(".note-preview-matricule") || {}).value || "",
+        note: Number((tr.querySelector(".note-preview-note") || {}).value)
+      }));
+      document.getElementById("notes-preview-json").value = JSON.stringify(rows);
+    });
   })();
 </script>

@@ -101,7 +101,8 @@ exports.elevesPage = async (req, res) => {
     ...ctx,
     previewRows: [],
     previewErrors: [],
-    ocrPreviewRows: []
+    ocrPreviewRows: [],
+    ocrRawText: ""
   });
 };
 
@@ -126,7 +127,8 @@ exports.previewElevesExcel = async (req, res) => {
       ...ctx,
       previewRows: preview.validRows,
       previewErrors: preview.errors,
-      ocrPreviewRows: []
+      ocrPreviewRows: [],
+      ocrRawText: ""
     });
   } catch (err) {
     req.flash("error", err.message);
@@ -152,13 +154,17 @@ exports.previewElevesPhoto = async (req, res) => {
     if (!file || !file.path) throw new Error("Photo requise pour OCR");
     const ocrText = await extractTextFromImageOcr(absoluteFromPublicPath(file.path));
     const rawRows = parseStudentsFromOcrText(ocrText);
+    if (!rawRows.length) {
+      throw new Error("OCR: aucune ligne exploitable. Utilisez un format lisible (Nom;Prenom;Sexe;Date;Classe) et une image nette.");
+    }
     const preview = await SetupService.previewStudentsRows(req.school_id, rawRows);
     const ctx = await SetupService.getSetupContext(req.school_id);
     return res.render("setup/eleves", {
       ...ctx,
       previewRows: preview.validRows,
       previewErrors: preview.errors,
-      ocrPreviewRows: rawRows
+      ocrPreviewRows: rawRows,
+      ocrRawText: ocrText || ""
     });
   } catch (err) {
     req.flash("error", err.message);
@@ -173,7 +179,15 @@ exports.notesPage = async (req, res) => {
     selectedClasse: "",
     elevesClasse: [],
     previewNoteRows: [],
-    previewNoteErrors: []
+    previewNoteErrors: [],
+    ocrRawText: "",
+    noteImportMeta: {
+      classe: "",
+      matiere: "",
+      trimestre: "1",
+      note_type: "devoir",
+      annee: req.school_year || ""
+    }
   });
 };
 
@@ -231,16 +245,54 @@ exports.previewNotesPhoto = async (req, res) => {
     const file = req.files && req.files.notes_photo ? req.files.notes_photo : null;
     if (!file || !file.path) throw new Error("Photo notes requise");
     const text = await extractTextFromImageOcr(absoluteFromPublicPath(file.path));
-    const parsedRows = parseNotesFromOcrText(text).map(SetupService.mapNoteRow);
-    const validRows = parsedRows.filter((r) => r.matricule && Number.isFinite(r.note));
-    const errors = parsedRows.length - validRows.length;
-    const result = await SetupService.saveNotesBulk(req.school_id, {
-      ...req.body,
-      rows: validRows
+    const rawRows = parseNotesFromOcrText(text);
+    const parsedRows = rawRows.map(SetupService.mapNoteRow);
+    if (!parsedRows.length) {
+      throw new Error("OCR: aucune ligne note detectee. Format conseille: Matricule;Note (une ligne par eleve).");
+    }
+    const validRows = parsedRows.filter((r) => r.matricule && Number.isFinite(r.note) && r.note >= 0 && r.note <= 20);
+    const dropped = parsedRows.length - validRows.length;
+
+    const ctx = await SetupService.getSetupContext(req.school_id);
+    return res.render("setup/notes", {
+      ...ctx,
+      selectedClasse: String(req.body.classe || "").trim(),
+      elevesClasse: [],
+      previewNoteRows: validRows,
+      previewNoteErrors: dropped ? [`${dropped} ligne(s) OCR ignoree(s) car invalides`] : [],
+      ocrRawText: text || "",
+      noteImportMeta: {
+        classe: String(req.body.classe || "").trim(),
+        matiere: String(req.body.matiere || "").trim(),
+        trimestre: String(req.body.trimestre || "1").trim(),
+        note_type: String(req.body.note_type || "devoir").trim(),
+        annee: String(req.body.annee || req.school_year || "").trim()
+      }
     });
+  } catch (err) {
+    req.flash("error", err.message);
+  }
+  return res.redirect("/setup/notes");
+};
+
+exports.commitNotesPreview = async (req, res) => {
+  try {
+    const rows = safeJsonParse(req.body.preview_rows_json, []);
+    if (!rows.length) throw new Error("Aucune ligne OCR a importer");
+
+    const payload = {
+      classe: String(req.body.classe || "").trim(),
+      matiere: String(req.body.matiere || "").trim(),
+      trimestre: String(req.body.trimestre || "1").trim(),
+      note_type: String(req.body.note_type || "devoir").trim(),
+      annee: String(req.body.annee || req.school_year || "").trim(),
+      rows
+    };
+
+    const result = await SetupService.saveNotesBulk(req.school_id, payload);
     req.flash("success", `${result.inserted} notes OCR enregistrees`);
-    if (result.errors.length || errors) {
-      req.flash("warning", `${result.errors.length + errors} lignes OCR en erreur`);
+    if (result.errors.length) {
+      req.flash("warning", `${result.errors.length} lignes OCR en erreur`);
     }
   } catch (err) {
     req.flash("error", err.message);

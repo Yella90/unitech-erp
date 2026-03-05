@@ -38,11 +38,18 @@
         <p class="mt-1 text-xs text-slate-500">Format attendu par ligne: Nom;Prenom;Sexe;Date_naissance;Classe</p>
         <form method="POST" action="/setup/eleves/import/photo/preview" enctype="multipart/form-data" class="mt-3 space-y-3">
           <input type="file" class="form-input" name="eleves_photo" accept="image/*" required />
-          <button class="btn btn-secondary" type="submit">Apercu OCR</button>
+          <button class="btn btn-secondary" type="submit">Apercu + correction OCR</button>
         </form>
       </div>
     </div>
   </div>
+
+  <% if (ocrRawText) { %>
+    <div class="card-shell p-5">
+      <h3 class="font-semibold">Texte OCR brut</h3>
+      <textarea class="form-input mt-3 h-36" readonly><%= ocrRawText %></textarea>
+    </div>
+  <% } %>
 
   <% if (previewErrors && previewErrors.length) { %>
     <div class="card-shell p-5">
@@ -54,20 +61,34 @@
   <% } %>
 
   <% if (previewRows && previewRows.length) { %>
-    <div class="card-shell p-5">
+    <div class="card-shell p-5" id="eleves-preview-block">
       <h3 class="font-semibold">Apercu avant insertion (<%= previewRows.length %> lignes valides)</h3>
       <div class="mt-3 overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead><tr class="border-b border-slate-200 text-slate-500"><th class="px-3 py-2 text-left">Nom</th><th class="px-3 py-2 text-left">Prenom</th><th class="px-3 py-2 text-left">Sexe</th><th class="px-3 py-2 text-left">Classe</th><th class="px-3 py-2 text-left">Naissance</th></tr></thead>
+        <table class="w-full text-sm" id="eleves-preview-table">
+          <thead><tr class="border-b border-slate-200 text-slate-500"><th class="px-3 py-2 text-left">Matricule</th><th class="px-3 py-2 text-left">Nom</th><th class="px-3 py-2 text-left">Prenom</th><th class="px-3 py-2 text-left">Sexe</th><th class="px-3 py-2 text-left">Classe</th><th class="px-3 py-2 text-left">Naissance</th><th class="px-3 py-2 text-left">Tel parent</th></tr></thead>
           <tbody>
             <% previewRows.forEach((r) => { %>
-              <tr class="border-b border-slate-100"><td class="px-3 py-2"><%= r.nom %></td><td class="px-3 py-2"><%= r.prenom %></td><td class="px-3 py-2"><%= r.sexe || '-' %></td><td class="px-3 py-2"><%= r.classe %></td><td class="px-3 py-2"><%= r.dateNaissance || '-' %></td></tr>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2"><input class="form-input eleve-field-matricule" value="<%= r.matricule || '' %>" /></td>
+                <td class="px-3 py-2"><input class="form-input eleve-field-nom" value="<%= r.nom || '' %>" /></td>
+                <td class="px-3 py-2"><input class="form-input eleve-field-prenom" value="<%= r.prenom || '' %>" /></td>
+                <td class="px-3 py-2">
+                  <select class="form-input eleve-field-sexe">
+                    <option value="" <%= !r.sexe ? 'selected' : '' %>>-</option>
+                    <option value="M" <%= r.sexe === 'M' ? 'selected' : '' %>>M</option>
+                    <option value="F" <%= r.sexe === 'F' ? 'selected' : '' %>>F</option>
+                  </select>
+                </td>
+                <td class="px-3 py-2"><input class="form-input eleve-field-classe" value="<%= r.classe || '' %>" /></td>
+                <td class="px-3 py-2"><input type="date" class="form-input eleve-field-date" value="<%= r.dateNaissance || '' %>" /></td>
+                <td class="px-3 py-2"><input class="form-input eleve-field-telparent" value="<%= r.telparent || '' %>" /></td>
+              </tr>
             <% }) %>
           </tbody>
         </table>
       </div>
-      <form method="POST" action="/setup/eleves/import/commit" class="mt-4">
-        <input type="hidden" name="preview_rows_json" value="<%= encodeURIComponent(JSON.stringify(previewRows || [])) %>" />
+      <form method="POST" action="/setup/eleves/import/commit" class="mt-4" id="eleves-preview-form">
+        <input type="hidden" name="preview_rows_json" id="eleves-preview-json" value="" />
         <button class="btn btn-primary" type="submit">Confirmer insertion</button>
       </form>
     </div>
@@ -77,3 +98,22 @@
     <a href="/setup/notes" class="btn btn-secondary">Passer a l'etape 3: Notes</a>
   </div>
 </section>
+
+<script>
+  (function () {
+    const form = document.getElementById("eleves-preview-form");
+    if (!form) return;
+    form.addEventListener("submit", function () {
+      const rows = Array.from(document.querySelectorAll("#eleves-preview-table tbody tr")).map((tr) => ({
+        matricule: (tr.querySelector(".eleve-field-matricule") || {}).value || "",
+        nom: (tr.querySelector(".eleve-field-nom") || {}).value || "",
+        prenom: (tr.querySelector(".eleve-field-prenom") || {}).value || "",
+        sexe: (tr.querySelector(".eleve-field-sexe") || {}).value || "",
+        classe: (tr.querySelector(".eleve-field-classe") || {}).value || "",
+        dateNaissance: (tr.querySelector(".eleve-field-date") || {}).value || "",
+        telparent: (tr.querySelector(".eleve-field-telparent") || {}).value || ""
+      }));
+      document.getElementById("eleves-preview-json").value = JSON.stringify(rows);
+    });
+  })();
+</script>

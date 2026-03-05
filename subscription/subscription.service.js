@@ -105,6 +105,27 @@ function computeExpiresAt(startsAt, billingCycle) {
   return dt.toISOString().slice(0, 10);
 }
 
+function parseDateLike(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    const n = Number(raw);
+    if (Number.isFinite(n)) {
+      const ms = n > 10_000_000_000 ? n : n * 1000;
+      const d = new Date(ms);
+      if (!Number.isNaN(d.getTime())) return d;
+    }
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function toYmd(value) {
+  const d = parseDateLike(value);
+  return d ? d.toISOString().slice(0, 10) : null;
+}
+
 const SubscriptionService = {
   getSchoolPlan: async (schoolId) => {
     return SubscriptionModel.getSchoolPlan(schoolId);
@@ -134,7 +155,7 @@ const SubscriptionService = {
     }
 
     const now = new Date();
-    const expiresAt = subscription.expires_at ? new Date(subscription.expires_at) : null;
+    const expiresAt = parseDateLike(subscription.expires_at);
     const status = String(subscription.status || "").trim().toLowerCase() || "pending";
 
     if (status === "suspended") {
@@ -156,7 +177,7 @@ const SubscriptionService = {
       message: "Abonnement actif",
       planCode: subscription.plan_code,
       planName: subscription.plan_name,
-      expiresAt: subscription.expires_at || null,
+      expiresAt: toYmd(subscription.expires_at),
       maxStudents: Number(subscription.max_students || 0),
       maxTeachers: Number(subscription.max_teachers || 0),
       maxUsers: Number(resolvePlanCapabilities({ code: subscription.plan_code }).max_users || 0)

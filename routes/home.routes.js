@@ -17,6 +17,9 @@ router.get("/", (req, res) => {
 });
 router.get("/vitrine", homeController.landing);
 router.get("/entreprise", homeController.entreprise);
+router.post("/api/public/visit", homeController.trackPublicVisit);
+router.get("/download/desktop/windows", homeController.downloadDesktopInstallerWindows);
+router.get("/download/desktop/mac", homeController.downloadDesktopInstallerMac);
 router.get("/login", (req, res) => res.redirect("/auth/login"));
 router.get("/register", (req, res) => res.redirect("/auth/register-school"));
 router.get("/dashboard", requireAuth, requireTenant, abonnementMiddleware, requireFeature("dashboard_smart"), homeController.index);

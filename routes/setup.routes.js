@@ -24,6 +24,8 @@ router.get("/notes", SetupController.notesPage);
 router.get("/notes/eleves", SetupController.notesClasseOptions);
 router.post("/notes/dynamic", SetupController.saveNotesDynamic);
 router.post("/notes/import/excel", requireFeature("excel_import"), setupUpload, SetupController.previewNotesExcel);
+router.post("/notes/import/photo/preview", requireFeature("ocr_import"), setupUpload, SetupController.previewNotesPhoto);
 router.post("/notes/import/photo", requireFeature("ocr_import"), setupUpload, SetupController.previewNotesPhoto);
+router.post("/notes/import/commit", SetupController.commitNotesPreview);
 
 module.exports = router;

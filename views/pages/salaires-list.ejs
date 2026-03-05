@@ -108,7 +108,7 @@
                 <td class="px-5 py-3"><%= s.mois || '-' %></td>
                 <td class="px-5 py-3 font-medium"><%= fmt(s.montant) %> FCFA</td>
                 <td class="px-5 py-3"><%= s.mode_payement || '-' %></td>
-                <td class="px-5 py-3"><%= s.date_payement || '-' %></td>
+                <td class="px-5 py-3"><%= fmtDate(s.date_payement) %></td>
                 <td class="px-5 py-3 text-right">
                   <form method="POST" action="/salaires/delete/<%= s.id %>" class="inline" data-confirm="Supprimer ce paiement de salaire ?">
                     <button class="btn btn-danger btn-sm" type="submit">Supprimer</button>

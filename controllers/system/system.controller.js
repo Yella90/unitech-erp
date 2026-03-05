@@ -2,6 +2,7 @@ const SystemService = require("../../services/system/system.service");
 const PDFDocument = require("pdfkit");
 const SubscriptionService = require("../../subscription/subscription.service");
 const { run, get } = require("../../utils/dbAsync");
+const RealtimeSyncService = require("../../services/sync/realtime-sync.service");
 
 function parseId(req) {
   return Number(req.params.id);
@@ -676,6 +677,11 @@ exports.utilisateursDelete = async (req, res) => {
 exports.rapportsPage = async (req, res) => {
   const reports = await SystemService.getReports(req.school_id);
   res.render("system/rapports", { reports });
+};
+
+exports.syncStatusPage = async (req, res) => {
+  const details = await RealtimeSyncService.getDetailedStatus(req.school_id);
+  res.render("system/sync-status", { details });
 };
 
 exports.notificationsPage = async (req, res) => {

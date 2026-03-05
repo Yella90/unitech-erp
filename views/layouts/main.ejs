@@ -6,11 +6,22 @@
   <title><%= pageTitle || "UNITECH ERP" %></title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link href="/css/output.css" rel="stylesheet">
+  <script defer src="/js/back-navigation.js"></script>
 </head>
-<body class="min-h-screen bg-[#F3F4F6] text-slate-800">
+<body class="min-h-screen bg-[#F3F4F6] text-slate-800" data-back-fallback="<%= (currentUser && currentUser.role === 'superadmin') ? '/admin/dashboard' : '/dashboard' %>">
   <header class="sticky top-0 z-30 border-b border-slate-200 bg-white">
     <div class="flex items-center justify-between px-4 py-3">
-      <h1 class="text-lg font-bold text-[#1E3A8A]"><%= headerTitle || "UNITECH ERP" %></h1>
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          data-back-system="true"
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          <span aria-hidden="true">&larr;</span>
+          Retour
+        </button>
+        <h1 class="text-lg font-bold text-[#1E3A8A]"><%= headerTitle || "UNITECH ERP" %></h1>
+      </div>
       <div><%- include("../partials/toast") %></div>
     </div>
   </header>

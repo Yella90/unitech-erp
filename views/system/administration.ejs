@@ -34,7 +34,7 @@
         Statut: <strong><%= latestSubscription.status || '-' %></strong> |
         Plan: <strong><%= latestSubscription.plan_name || latestSubscription.plan_code || '-' %></strong> |
         Cycle: <strong><%= latestSubscription.billing_cycle === 'annual' ? 'annuel' : 'mensuel' %></strong> |
-        Expire le: <strong><%= latestSubscription.expires_at || '-' %></strong>
+        Expire le: <strong><%= fmtDate(latestSubscription.expires_at) %></strong>
       </p>
     <% } else { %>
       <p class="text-sm text-gray-600 mb-3">Aucun abonnement enregistre.</p>

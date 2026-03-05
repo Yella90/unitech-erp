@@ -77,7 +77,7 @@
           <% if (notifications && notifications.length) { %>
             <% notifications.forEach((n) => { %>
               <tr>
-                <td class="px-5 py-3"><%= n.created_at || '-' %></td>
+                <td class="px-5 py-3"><%= fmtDateTime(n.created_at) %></td>
                 <td class="px-5 py-3"><%= n.type %></td>
                 <td class="px-5 py-3 font-medium"><%= n.title %></td>
                 <td class="px-5 py-3"><%= n.message %></td>

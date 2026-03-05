@@ -57,7 +57,7 @@
   </div>
 
   <table class="w-full text-sm"><thead><tr><th>Categorie</th><th>Motif</th><th>Montant</th><th>Date</th><th>Valide par</th><th></th></tr></thead><tbody>
-  <% depenses.forEach(d => { %><tr class="border-t"><td><%= d.categorie || '' %></td><td><%= d.motif %></td><td><%= d.montant %></td><td><%= d.date_depenses || '' %></td><td><%= d.valide_par || '' %></td><td><form method="POST" action="/depenses/delete/<%= d.id %>"><button class="text-red-600">Supprimer</button></form></td></tr><% }) %>
+  <% depenses.forEach(d => { %><tr class="border-t"><td><%= d.categorie || '' %></td><td><%= d.motif %></td><td><%= d.montant %></td><td><%= fmtDate(d.date_depenses) %></td><td><%= d.valide_par || '' %></td><td><form method="POST" action="/depenses/delete/<%= d.id %>"><button class="text-red-600">Supprimer</button></form></td></tr><% }) %>
   </tbody></table>
 </div>
 <script src="/js/chart.umd.js"></script>

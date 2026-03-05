@@ -12,6 +12,15 @@ function fromCallback(executor) {
   });
 }
 
+function monthLabelFromKey(key) {
+  const raw = String(key || "").trim();
+  if (!/^\d{4}-\d{2}$/.test(raw)) return raw || "-";
+  const [y, m] = raw.split("-").map((v) => Number(v));
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return raw;
+  const d = new Date(y, m - 1, 1);
+  return new Intl.DateTimeFormat("fr-FR", { month: "short" }).format(d);
+}
+
 const HomeServices = {
   indexHome: (schoolId, options, callback) => {
     (async () => {
@@ -39,9 +48,39 @@ const HomeServices = {
         endDate = `${yearText}-${monthText}-${String(d.getDate()).padStart(2, "0")}`;
       }
 
-      const actuals = await fromCallback((cb) =>
-        HomeModel.getDashboardFinanceActuals(schoolId, tuitionForecast.startDate, selectedMonth, endDate, cb)
-      );
+      const [actuals, timelineRaw] = await Promise.all([
+        fromCallback((cb) =>
+          HomeModel.getDashboardFinanceActuals(schoolId, tuitionForecast.startDate, selectedMonth, endDate, cb)
+        ),
+        fromCallback((cb) =>
+          HomeModel.getDashboardFinanceTimeline(schoolId, tuitionForecast.startDate, endDate, cb)
+        )
+      ]);
+
+      const monthOptions = Array.isArray(monthData.monthOptions) ? monthData.monthOptions : [];
+      const selectedIdx = monthOptions.findIndex((m) => m.value === selectedMonth);
+      const fromIdx = selectedIdx >= 0 ? Math.max(0, selectedIdx - 5) : Math.max(0, monthOptions.length - 6);
+      const timelineScope = monthOptions.slice(fromIdx, selectedIdx >= 0 ? selectedIdx + 1 : monthOptions.length);
+      const byMonth = new Map((timelineRaw || []).map((row) => [String(row.month_key || "").trim(), row]));
+
+      const timeline = timelineScope.map((m) => {
+        const row = byMonth.get(String(m.value || "").trim()) || {};
+        const revenus = Number(row.revenus || 0);
+        const depenses = Number(row.depenses || 0);
+        const salaires = Number(row.salaires || 0);
+        const retraits = Number(row.retraits || 0);
+        const sorties = depenses + salaires + retraits;
+        return {
+          key: m.value,
+          label: monthLabelFromKey(m.value),
+          revenus,
+          depenses,
+          salaires,
+          retraits,
+          sorties,
+          solde: revenus - sorties
+        };
+      });
 
       return {
         stats,
@@ -50,6 +89,7 @@ const HomeServices = {
         payrollForecast,
         tuitionForecast,
         actuals,
+        timeline,
         monthData,
         selectedMonth
       };

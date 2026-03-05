@@ -71,6 +71,7 @@ router.post("/utilisateurs", requireRole("school_admin"), ctrl.utilisateursCreat
 router.post("/utilisateurs/delete/:id", requireRole("school_admin"), ctrl.utilisateursDelete);
 
 router.get("/rapports", requireFeature("stats_advanced"), ctrl.rapportsPage);
+router.get("/sync-status", ctrl.syncStatusPage);
 
 router.get("/transfers/request/:matricule", checkRole("admin_ecole"), transferCtrl.requestForm);
 router.post("/transfers/request", checkRole("admin_ecole"), transferCtrl.requestCreate);

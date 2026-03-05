@@ -6,6 +6,8 @@
   <title>UNITECH - Entreprise</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link href="/css/output.css" rel="stylesheet">
+  <script defer src="/js/back-navigation.js"></script>
+  <script defer src="/js/public-visit-tracker.js"></script>
   <style>
     :root {
       --brand-blue: #1E3A8A;
@@ -32,7 +34,7 @@
     }
   </style>
 </head>
-<body class="text-slate-800">
+<body class="text-slate-800" data-back-fallback="/vitrine">
   <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
       <a href="/entreprise" class="flex items-center gap-3">
@@ -198,5 +200,10 @@
       <p>Email: doumbialayesoma@gmail.com | Telephone: +223 90692363</p>
     </div>
   </footer>
+  <script>
+    if (typeof window.UNITECH_TRACK_PUBLIC_VISIT === "function") {
+      window.UNITECH_TRACK_PUBLIC_VISIT("/entreprise");
+    }
+  </script>
 </body>
 </html>

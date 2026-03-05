@@ -1,9 +1,9 @@
 const { run, get, all } = require("../utils/dbAsync");
-const { pool } = require("../config/db");
 
 const usePostgres = String(process.env.DB_CLIENT || "")
   .trim()
   .toLowerCase() === "postgres";
+const { pool } = usePostgres ? require("../config/postgres") : { pool: null };
 
 const SchoolModel = {
   create: async ({ name, email, phone, address, subscription_plan }) => {

@@ -1,20 +1,22 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const SuperAdminModel = require("../../models/superadmin/dashboard.model");
+const VisitorTrackingService = require("../public/visitor-tracking.service");
 
 const SALT_ROUNDS = 10;
 
 const SuperAdminService = {
   getDashboard: async () => {
-    const [stats, schools, pendingSubscriptions, logs, plans, superAdmins] = await Promise.all([
+    const [stats, schools, pendingSubscriptions, logs, plans, superAdmins, visitorAnalytics] = await Promise.all([
       SuperAdminModel.stats(),
       SuperAdminModel.listSchools(),
       SuperAdminModel.listPendingSubscriptions(),
       SuperAdminModel.listActivityLogs(25),
       SuperAdminModel.listPlans(),
-      SuperAdminModel.listSuperAdmins()
+      SuperAdminModel.listSuperAdmins(),
+      VisitorTrackingService.getAdminAnalytics()
     ]);
 
-    return { stats, schools, pendingSubscriptions, logs, plans, superAdmins };
+    return { stats, schools, pendingSubscriptions, logs, plans, superAdmins, visitorAnalytics };
   },
 
   toggleSchoolStatus: async (schoolId, isActive, actorUserId = null) => {
@@ -187,3 +189,6 @@ const SuperAdminService = {
 };
 
 module.exports = SuperAdminService;
+
+
+

@@ -1,6 +1,9 @@
 const HomeService = require("../services/home.service");
 const SubscriptionService = require("../subscription/subscription.service");
 const { get } = require("../utils/dbAsync");
+const VisitorTrackingService = require("../services/public/visitor-tracking.service");
+const fs = require("fs");
+const path = require("path");
 
 function toNumber(value) {
   const n = Number(value);
@@ -59,7 +62,8 @@ exports.index = (req, res) => {
           actualMensuel: toNumber(data.actuals && data.actuals.actual_depenses_mensuel),
           forecastCumule: toNumber(data.payrollForecast && data.payrollForecast.totalSortiesPrevues) * Math.max(moisEcoules, 1),
           actualCumule: toNumber(data.actuals && data.actuals.actual_depenses_cumule)
-        }
+        },
+        timeline: Array.isArray(data.timeline) ? data.timeline : []
       },
       monthOptions: data.monthData && Array.isArray(data.monthData.monthOptions) ? data.monthData.monthOptions : [],
       activeMonth: data.selectedMonth || (data.monthData && data.monthData.activeMonth ? data.monthData.activeMonth : null),
@@ -72,7 +76,7 @@ exports.index = (req, res) => {
 
 exports.landing = async (req, res) => {
   try {
-    const [plans, schoolsRow, elevesRow, activeSchoolsRow, activeSubsRow] = await Promise.all([
+    const [plans, schoolsRow, elevesRow, activeSchoolsRow, activeSubsRow, visitorStats] = await Promise.all([
       SubscriptionService.listPlans(),
       get("SELECT COUNT(*) AS total FROM schools", []),
       get("SELECT COUNT(*) AS total FROM eleves", []),
@@ -100,7 +104,8 @@ exports.landing = async (req, res) => {
         )
         `,
         []
-      )
+      ),
+      VisitorTrackingService.getLandingStats()
     ]);
 
     const totalSchools = Number((schoolsRow && schoolsRow.total) || 0);
@@ -116,7 +121,7 @@ exports.landing = async (req, res) => {
       disponibilite: Math.round((activeSubscriptions / safeDenominator) * 100)
     };
 
-    return res.render("public/index", { plans: plans || [], metrics });
+    return res.render("public/index", { plans: plans || [], metrics, visitorStats: visitorStats || {} });
   } catch (err) {
     return res.render("public/index", {
       plans: [],
@@ -125,6 +130,11 @@ exports.landing = async (req, res) => {
         totalEleves: 0,
         satisfaction: 0,
         disponibilite: 0
+      },
+      visitorStats: {
+        totalVisits: 0,
+        uniqueVisitors: 0,
+        visitsToday: 0
       }
     });
   }
@@ -132,4 +142,61 @@ exports.landing = async (req, res) => {
 
 exports.entreprise = (req, res) => {
   return res.render("public/entreprise");
+};
+
+exports.trackPublicVisit = async (req, res) => {
+  try {
+    const result = await VisitorTrackingService.trackPublicVisit({
+      req,
+      body: req.body || {}
+    });
+    return res.status(200).json({ ok: true, tracked: Boolean(result && result.tracked) });
+  } catch (err) {
+    return res.status(200).json({ ok: false });
+  }
+};
+
+function downloadInstallerByPattern(req, res, matcher, notFoundMessage) {
+  try {
+    const distDir = path.resolve(__dirname, "..", "dist");
+    if (!fs.existsSync(distDir)) {
+      return res.status(404).send(notFoundMessage);
+    }
+
+    const candidates = fs.readdirSync(distDir)
+      .filter((name) => matcher.test(name))
+      .map((name) => {
+        const fullPath = path.join(distDir, name);
+        const stat = fs.statSync(fullPath);
+        return { name, fullPath, mtimeMs: stat.mtimeMs };
+      })
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+
+    if (!candidates.length) {
+      return res.status(404).send(notFoundMessage);
+    }
+
+    const installer = candidates[0];
+    return res.download(installer.fullPath, installer.name);
+  } catch (err) {
+    return res.status(500).send("Erreur lors du telechargement de l'installateur.");
+  }
+}
+
+exports.downloadDesktopInstallerWindows = (req, res) => {
+  return downloadInstallerByPattern(
+    req,
+    res,
+    /setup.*\.exe$/i,
+    "Installateur Windows (.exe) indisponible pour le moment."
+  );
+};
+
+exports.downloadDesktopInstallerMac = (req, res) => {
+  return downloadInstallerByPattern(
+    req,
+    res,
+    /\.dmg$/i,
+    "Installateur macOS (.dmg) indisponible pour le moment."
+  );
 };

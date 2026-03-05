@@ -1,4 +1,4 @@
-const bcrypt = require("bcrypt");
+﻿const bcrypt = require("bcryptjs");
 const { all, get, run } = require("../../utils/dbAsync");
 const TransfersService = require("../transfers.service");
 
@@ -1744,3 +1744,4 @@ const SystemService = {
 };
 
 module.exports = SystemService;
+

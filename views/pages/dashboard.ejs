@@ -10,7 +10,7 @@
     <p class="text-sm text-slate-600">
       Abonnement: <strong><%= datas.subscriptionStatus.status || 'inconnu' %></strong>
       <% if (datas.subscriptionStatus.planName) { %> - Plan: <strong><%= datas.subscriptionStatus.planName %></strong><% } %>
-      <% if (datas.subscriptionStatus.expiresAt) { %> - Expire le <strong><%= datas.subscriptionStatus.expiresAt %></strong><% } %>
+      <% if (datas.subscriptionStatus.expiresAt) { %> - Expire le <strong><%= fmtDate(datas.subscriptionStatus.expiresAt) %></strong><% } %>
     </p>
   </section>
 <% } %>
@@ -32,18 +32,36 @@
 <section class="grid gap-6 lg:grid-cols-2">
   <div class="card-shell p-5">
     <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-base font-semibold">Depenses: prevision vs actuel</h2>
-      <span class="badge badge-neutral">Radar</span>
+      <h2 class="text-base font-semibold">Revenus vs sorties (6 derniers mois)</h2>
+      <span class="badge badge-neutral">Barres</span>
     </div>
-    <div class="h-72"><canvas id="depensesChart" class="h-full w-full"></canvas></div>
+    <div class="h-72"><canvas id="cashflowChart" class="h-full w-full"></canvas></div>
   </div>
 
   <div class="card-shell p-5">
     <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-base font-semibold">Revenus: prevision vs actuel</h2>
+      <h2 class="text-base font-semibold">Ecart prevision vs reel (mois actif)</h2>
       <span class="badge badge-neutral">Courbe</span>
     </div>
-    <div class="h-72"><canvas id="revenusChart" class="h-full w-full"></canvas></div>
+    <div class="h-72"><canvas id="forecastGapChart" class="h-full w-full"></canvas></div>
+  </div>
+</section>
+
+<section class="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+  <div class="card-shell p-5">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-base font-semibold">Evolution du solde mensuel</h2>
+      <span class="badge badge-neutral">Aire</span>
+    </div>
+    <div class="h-72"><canvas id="soldeTrendChart" class="h-full w-full"></canvas></div>
+  </div>
+
+  <div class="card-shell p-5">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-base font-semibold">Structure des sorties (mois actif)</h2>
+      <span class="badge badge-neutral">Doughnut</span>
+    </div>
+    <div class="h-72"><canvas id="chargesSplitChart" class="h-full w-full"></canvas></div>
   </div>
 </section>
 
@@ -86,98 +104,112 @@
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (typeof Chart === 'undefined') return;
+    const timeline = <%- JSON.stringify((datas.finance && datas.finance.timeline) || []) %>;
+    const fmtFcfa = (v) => `${Number(v || 0).toLocaleString('fr-FR')} FCFA`;
 
-    const depCtx = document.getElementById('depensesChart');
-    const revCtx = document.getElementById('revenusChart');
+    const baseOptions = {
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${fmtFcfa(ctx.parsed.y ?? ctx.parsed)}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: { callback: (v) => `${Number(v || 0).toLocaleString('fr-FR')}` },
+          grid: { color: '#e2e8f0' }
+        },
+        x: { grid: { display: false } }
+      }
+    };
 
-    if (depCtx) {
-      new Chart(depCtx, {
-        type: 'radar',
+    const labels = timeline.map((m) => m.label || m.key);
+    const revenusSeries = timeline.map((m) => Number(m.revenus || 0));
+    const sortiesSeries = timeline.map((m) => Number(m.sorties || 0));
+    const soldeSeries = timeline.map((m) => Number(m.solde || 0));
+    const active = timeline.length ? timeline[timeline.length - 1] : { depenses: 0, salaires: 0, retraits: 0 };
+
+    const cashflowCtx = document.getElementById('cashflowChart');
+    if (cashflowCtx) {
+      new Chart(cashflowCtx, {
+        type: 'bar',
         data: {
-          labels: ['Mensuel', 'Cumule'],
+          labels,
+          datasets: [
+            { label: 'Revenus', data: revenusSeries, backgroundColor: 'rgba(16, 185, 129, 0.75)', borderRadius: 8 },
+            { label: 'Sorties', data: sortiesSeries, backgroundColor: 'rgba(244, 63, 94, 0.75)', borderRadius: 8 }
+          ]
+        },
+        options: baseOptions
+      });
+    }
+
+    const gapCtx = document.getElementById('forecastGapChart');
+    if (gapCtx) {
+      const revForecastMensuel = <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.forecastMensuel : 0 %>;
+      const revActualMensuel = <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.actualMensuel : 0 %>;
+      const depForecastMensuel = <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.forecastMensuel : 0 %>;
+      const depActualMensuel = <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.actualMensuel : 0 %>;
+
+      new Chart(gapCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Revenus', 'Sorties'],
+          datasets: [
+            { label: 'Prevision', data: [revForecastMensuel, depForecastMensuel], backgroundColor: 'rgba(59, 130, 246, 0.72)', borderRadius: 8 },
+            { label: 'Reel', data: [revActualMensuel, depActualMensuel], backgroundColor: 'rgba(99, 102, 241, 0.72)', borderRadius: 8 }
+          ]
+        },
+        options: baseOptions
+      });
+    }
+
+    const soldeCtx = document.getElementById('soldeTrendChart');
+    if (soldeCtx) {
+      new Chart(soldeCtx, {
+        type: 'line',
+        data: {
+          labels,
           datasets: [
             {
-              label: 'Prevision',
-              data: [
-                <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.forecastMensuel : 0 %>,
-                <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.forecastCumule : 0 %>
-              ],
-              backgroundColor: 'rgba(244, 63, 94, 0.25)',
-              borderColor: '#e11d48',
-              borderWidth: 2,
-              pointRadius: 3,
-              pointBackgroundColor: '#e11d48'
-            },
-            {
-              label: 'Actuel',
-              data: [
-                <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.actualMensuel : 0 %>,
-                <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.actualCumule : 0 %>
-              ],
-              backgroundColor: 'rgba(14, 165, 233, 0.22)',
-              borderColor: '#0284c7',
-              borderWidth: 2,
-              pointRadius: 3,
-              pointBackgroundColor: '#0284c7'
+              label: 'Solde mensuel',
+              data: soldeSeries,
+              borderColor: '#0ea5e9',
+              backgroundColor: 'rgba(14, 165, 233, 0.18)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 3
             }
           ]
         },
+        options: baseOptions
+      });
+    }
+
+    const splitCtx = document.getElementById('chargesSplitChart');
+    if (splitCtx) {
+      new Chart(splitCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Depenses', 'Salaires', 'Retraits'],
+          datasets: [{
+            data: [Number(active.depenses || 0), Number(active.salaires || 0), Number(active.retraits || 0)],
+            backgroundColor: ['#ef4444', '#0ea5e9', '#f59e0b']
+          }]
+        },
         options: {
           maintainAspectRatio: false,
-          scales: {
-            r: {
-              beginAtZero: true,
-              angleLines: { color: '#e2e8f0' },
-              grid: { color: '#e2e8f0' },
-              pointLabels: { color: '#334155' }
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.label}: ${fmtFcfa(ctx.parsed)}`
+              }
             }
           }
         }
       });
-    }
-
-    if (revCtx) {
-      new Chart(revCtx, {
-      type: 'line',
-      data: {
-        labels: ['Mensuel', 'Cumule'],
-        datasets: [
-          {
-            label: 'Prevision',
-            data: [
-              <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.forecastMensuel : 0 %>,
-              <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.forecastCumule : 0 %>
-            ],
-            backgroundColor: 'rgba(16, 185, 129, 0.20)',
-            borderColor: '#059669',
-            borderWidth: 3,
-            fill: true,
-            tension: 0.35,
-            pointRadius: 3
-          },
-          {
-            label: 'Actuel',
-            data: [
-              <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.actualMensuel : 0 %>,
-              <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.actualCumule : 0 %>
-            ],
-            backgroundColor: 'rgba(99, 102, 241, 0.18)',
-            borderColor: '#4f46e5',
-            borderWidth: 3,
-            fill: true,
-            tension: 0.35,
-            pointRadius: 3
-          }
-        ]
-      },
-      options: {
-        maintainAspectRatio: false,
-        scales: {
-          y: { grid: { color: '#e2e8f0' } },
-          x: { grid: { display: false } }
-        }
-      }
-    });
     }
   });
 </script>
