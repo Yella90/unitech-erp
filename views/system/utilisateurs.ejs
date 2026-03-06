@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><%- include('../../partials/head') %><title>Utilisateurs & roles</title></head>
+<body class="bg-gray-100 p-6">
+<div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+  <h1 class="text-2xl font-bold mb-4">Gestion des utilisateurs & roles</h1>
+  <form method="POST" action="/utilisateurs" class="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4">
+    <input class="border p-2 rounded" name="matricule" placeholder="Matricule">
+    <input class="border p-2 rounded" name="full_name" placeholder="Nom complet" required>
+    <input class="border p-2 rounded" name="email" placeholder="Email" required>
+    <input class="border p-2 rounded" name="phone" placeholder="Telephone">
+    <select class="border p-2 rounded" name="role"><option value="staff">staff</option><option value="school_admin">school_admin</option></select>
+    <input class="border p-2 rounded" type="password" name="password" placeholder="Mot de passe" required>
+    <div class="md:col-span-6"><button class="bg-blue-600 text-white px-4 py-2 rounded">Creer utilisateur</button></div>
+  </form>
+  <table class="w-full text-sm"><thead><tr><th>Matricule</th><th>Nom</th><th>Email</th><th>Role</th><th></th></tr></thead><tbody>
+  <% users.forEach(u => { %><tr class="border-t"><td><%= u.matricule || '' %></td><td><%= u.full_name %></td><td><%= u.email %></td><td><%= u.role %></td><td><form method="POST" action="/utilisateurs/delete/<%= u.id %>"><button class="text-red-600">Supprimer</button></form></td></tr><% }) %>
+  </tbody></table>
+</div>
+</body>
+</html>

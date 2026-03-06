@@ -1,0 +1,31 @@
+<section class="space-y-5">
+  <div class="card-shell p-5 space-y-4">
+    <div>
+      <h2 class="text-base font-semibold">Demander un transfert inter-ecole</h2>
+      <p class="text-sm text-slate-500 mt-1">L'ecole cible recevra la demande et pourra l'accepter ou la refuser.</p>
+    </div>
+
+    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+      <p><span class="font-semibold">Eleve:</span> <%= eleve.nom %> <%= eleve.prenom %></p>
+      <p><span class="font-semibold">Matricule:</span> <%= eleve.matricule %></p>
+      <p><span class="font-semibold">Classe actuelle:</span> <%= eleve.classe || '-' %></p>
+    </div>
+
+    <form action="/transfers/request" method="POST" class="grid gap-3 md:grid-cols-[1fr_auto]">
+      <input type="hidden" name="matricule" value="<%= eleve.matricule %>" />
+      <div>
+        <label class="form-label" for="to_ecole_id">Ecole cible</label>
+        <select id="to_ecole_id" name="to_ecole_id" class="form-input" required>
+          <option value="">Selectionner</option>
+          <% (schools || []).forEach((s) => { %>
+            <option value="<%= s.id %>"><%= s.name %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit" class="btn btn-primary">Envoyer la demande</button>
+        <a href="/eleves/liste" class="btn btn-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</section>

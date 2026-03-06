@@ -1,0 +1,11 @@
+<tr class="transition hover:bg-slate-50/70">
+  <td class="px-5 py-3"><%= row.classe || '-' %></td>
+  <td class="px-5 py-3"><%= row.matiere || '-' %></td>
+  <td class="px-5 py-3"><%= row.enseignant_nom || '-' %></td>
+  <td class="px-5 py-3"><%= row.enseignant_matricule || '-' %></td>
+  <td class="px-5 py-3 text-right">
+    <form method="POST" action="/affectations/delete/<%= row.id %>" class="inline" data-confirm="Supprimer cette affectation ?">
+      <button class="btn btn-danger btn-sm" type="submit">Supprimer</button>
+    </form>
+  </td>
+</tr>

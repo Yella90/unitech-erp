@@ -1,0 +1,70 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Nouveau personnel</h2>
+    <form method="POST" action="/personnel" class="mt-4 grid gap-3 md:grid-cols-4">
+      <div><label class="form-label">Nom</label><input class="form-input" name="nom" /></div>
+      <div><label class="form-label">Prenom</label><input class="form-input" name="prenom" /></div>
+      <div><label class="form-label">Nom complet</label><input class="form-input" name="full_name" placeholder="Optionnel si nom + prenom" /></div>
+      <div>
+        <label class="form-label">Role / Poste</label>
+        <select class="form-input" name="role">
+          <option value="">Selectionner</option>
+          <option value="Comptable">Comptable</option>
+          <option value="Surveillant">Surveillant</option>
+          <option value="Secretaire">Secretaire</option>
+          <option value="Censeur">Censeur</option>
+          <option value="Bibliothecaire">Bibliothecaire</option>
+          <option value="Agent d'entretien">Agent d'entretien</option>
+          <option value="Agent de securite">Agent de securite</option>
+          <option value="Infirmerie">Infirmerie</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Type personnel</label>
+        <select class="form-input" name="type_personnel">
+          <option value="">Selectionner</option>
+          <option value="administratif">Administratif</option>
+          <option value="pedagogique">Pedagogique</option>
+          <option value="technique">Technique</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Type paiement</label>
+        <select class="form-input" name="type_payement">
+          <option value="">Selectionner</option>
+          <option value="mensuel">Mensuel</option>
+          <option value="horaire">Horaire</option>
+          <option value="forfait">Forfait</option>
+        </select>
+      </div>
+      <div><label class="form-label">Salaire de base</label><input class="form-input" type="number" name="salaire_base" min="0" /></div>
+      <div><label class="form-label">Taux horaire</label><input class="form-input" type="number" name="taux_horaire" min="0" /></div>
+
+      <div><label class="form-label">Date embauche</label><input class="form-input" type="date" name="date_embauche" /></div>
+      <div>
+        <label class="form-label">Statut</label>
+        <select class="form-input" name="statut">
+          <option value="actif">Actif</option>
+          <option value="inactif">Inactif</option>
+        </select>
+      </div>
+      <div><label class="form-label">Email</label><input class="form-input" type="email" name="email" /></div>
+      <div><label class="form-label">Telephone</label><input class="form-input" name="phone" /></div>
+
+      <div class="md:col-span-4">
+        <button class="btn btn-primary w-full sm:w-auto" type="submit">Ajouter personnel</button>
+      </div>
+    </form>
+  </div>
+
+  <%- include('../partials/table', {
+    tableTitle: 'Personnel de l\'etablissement',
+    headers: ['Matricule', 'Nom', 'Poste', 'Type', 'Paiement', 'Statut', 'Contact', 'Actions'],
+    rows: personnel || [],
+    rowPartial: '../partials/rows/personnel-row',
+    emptyText: 'Aucun personnel enregistre.'
+  }) %>
+</section>

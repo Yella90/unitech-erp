@@ -1,0 +1,131 @@
+<%
+  const fmt = (value) => Number(value || 0).toLocaleString('fr-FR');
+  const periodLabel = activePeriod === 'monthly' ? '(mois)' : '(annuel)';
+%>
+
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="text-base font-semibold">Pilotage de tresorerie</h2>
+        <p class="mt-1 text-sm text-slate-500">Suivez le solde, les sorties et les previsions de charge en temps reel.</p>
+      </div>
+      <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+        Solde <%= periodLabel %>: <strong class="text-slate-800"><%= fmt(summary && summary.solde) %> FCFA</strong>
+      </span>
+    </div>
+    <form action="/tresorerie" method="GET" class="mt-4 grid gap-3 md:grid-cols-[220px_1fr_auto]">
+      <div>
+        <label class="form-label">Periode</label>
+        <select class="form-input" name="period">
+          <option value="annual" <%= activePeriod === 'annual' ? 'selected' : '' %>>Annuelle</option>
+          <option value="monthly" <%= activePeriod === 'monthly' ? 'selected' : '' %>>Mensuelle</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Mois</label>
+        <select class="form-input" name="month">
+          <% (monthOptions || []).forEach((m) => { %>
+            <option value="<%= m.value %>" <%= activeMonth === m.value ? 'selected' : '' %>><%= m.label %></option>
+          <% }) %>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary md:self-end">Appliquer</button>
+    </form>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <%- include('../partials/card', { title: 'Entrees ' + periodLabel, value: fmt(summary && summary.paiements) + ' FCFA', tone: 'tone-emerald', iconName: 'banknote' }) %>
+    <%- include('../partials/card', { title: 'Depenses ' + periodLabel, value: fmt(summary && summary.depenses) + ' FCFA', tone: 'tone-rose', iconName: 'chart-down' }) %>
+    <%- include('../partials/card', { title: 'Salaires ' + periodLabel, value: fmt(summary && summary.salaires) + ' FCFA', tone: 'tone-sky', iconName: 'users' }) %>
+    <%- include('../partials/card', { title: 'Retraits ' + periodLabel, value: fmt(summary && summary.retraits) + ' FCFA', tone: 'tone-amber', iconName: 'layers' }) %>
+    <%- include('../partials/card', { title: 'Solde ' + periodLabel, value: fmt(summary && summary.solde) + ' FCFA', tone: 'tone-indigo', iconName: 'coins' }) %>
+  </div>
+
+  <% if (forecast) { %>
+    <div class="card-shell p-5 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h3 class="text-base font-semibold">Prevision mensuelle de charges</h3>
+        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Actifs: <strong><%= forecast.totalActifs || 0 %></strong></span>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">Salaires prevus: <strong><%= fmt(forecast.totalSalairesPrevus) %> FCFA</strong></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">Moy. depenses: <strong><%= fmt(forecast.averageDepenses) %> FCFA</strong></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">Moy. retraits: <strong><%= fmt(forecast.averageRetraits) %> FCFA</strong></div>
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm xl:col-span-2">Sorties prevues/mois: <strong><%= fmt(forecast.totalSortiesPrevues) %> FCFA</strong></div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[760px] text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 bg-slate-50 text-slate-600">
+              <th class="px-3 py-2 text-left">Source</th>
+              <th class="px-3 py-2 text-left">Matricule</th>
+              <th class="px-3 py-2 text-left">Nom</th>
+              <th class="px-3 py-2 text-left">Poste</th>
+              <th class="px-3 py-2 text-left">Type paiement</th>
+              <th class="px-3 py-2 text-left">Montant prevu</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (forecast.details || []).forEach((d) => { %>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2"><%= d.source %></td>
+                <td class="px-3 py-2"><%= d.matricule %></td>
+                <td class="px-3 py-2"><%= d.nom %></td>
+                <td class="px-3 py-2"><%= d.poste %></td>
+                <td class="px-3 py-2"><%= d.type_payement %></td>
+                <td class="px-3 py-2 font-medium"><%= fmt(d.montant_prevu) %> FCFA</td>
+              </tr>
+            <% }) %>
+            <% if (!forecast.details || !forecast.details.length) { %>
+              <tr><td colspan="6" class="px-3 py-8 text-center text-slate-400">Aucune prevision detaillee disponible.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+
+  <% if (tuitionForecast) { %>
+    <div class="card-shell p-5 space-y-4">
+      <h3 class="text-base font-semibold">Prevision mensualites classes</h3>
+      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">Mensuel prevu: <strong><%= fmt(tuitionForecast.totalMensuelPrevu) %> FCFA</strong></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">Cumule prevu: <strong><%= fmt(tuitionForecast.totalCumulePrevu) %> FCFA</strong></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">Reste cumule: <strong><%= fmt(tuitionForecast.totalResteCumule) %> FCFA</strong></div>
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm">Net mensuel prevu: <strong><%= fmt(tuitionForecast.netMensuelPrevu) %> FCFA</strong></div>
+      </div>
+    </div>
+  <% } %>
+
+  <div class="card-shell overflow-hidden">
+    <div class="border-b border-slate-200 px-5 py-4">
+      <h3 class="text-base font-semibold">Derniers mouvements</h3>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[580px] text-sm">
+        <thead>
+          <tr class="bg-slate-50 text-slate-600">
+            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Type</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Montant</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Date</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <% (mouvements || []).forEach((m) => { %>
+            <tr>
+              <td class="px-5 py-3"><%= m.type %></td>
+              <td class="px-5 py-3 font-medium"><%= fmt(m.montant) %> FCFA</td>
+              <td class="px-5 py-3"><%= fmtDateTime(m.date_mouvement || m.created_at) %></td>
+            </tr>
+          <% }) %>
+          <% if (!mouvements || !mouvements.length) { %>
+            <tr><td colspan="3" class="px-5 py-10 text-center text-slate-400">Aucun mouvement recent.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

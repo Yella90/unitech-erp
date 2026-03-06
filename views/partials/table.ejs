@@ -1,0 +1,39 @@
+<%
+  const safeTableTitle = typeof tableTitle !== 'undefined' ? tableTitle : 'Table';
+  const safeTableActionLabel = typeof tableActionLabel !== 'undefined' ? tableActionLabel : '';
+  const safeTableActionHref = typeof tableActionHref !== 'undefined' ? tableActionHref : '';
+  const safeHeaders = typeof headers !== 'undefined' && Array.isArray(headers) ? headers : [];
+  const safeRows = typeof rows !== 'undefined' && Array.isArray(rows) ? rows : [];
+  const safeRowPartial = typeof rowPartial !== 'undefined' ? rowPartial : null;
+  const safeEmptyText = typeof emptyText !== 'undefined' ? emptyText : 'Aucune donnee disponible.';
+%>
+<section class="card-shell overflow-hidden">
+  <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+    <h2 class="text-base font-semibold text-slate-900"><%= safeTableTitle %></h2>
+    <% if (safeTableActionLabel && safeTableActionHref) { %>
+      <a class="btn btn-secondary" href="<%= safeTableActionHref %>"><%= safeTableActionLabel %></a>
+    <% } %>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[760px] text-sm">
+      <thead class="sticky top-0 z-10 bg-slate-50 text-slate-600">
+        <tr>
+          <% safeHeaders.forEach((h) => { %>
+            <th class="px-5 py-3 text-left font-semibold uppercase tracking-wide text-xs"><%= h %></th>
+          <% }) %>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        <% if (safeRows.length && safeRowPartial) { %>
+          <% safeRows.forEach((row, index) => { %>
+            <%- include(safeRowPartial, { row, index }) %>
+          <% }) %>
+        <% } else { %>
+          <tr>
+            <td colspan="<%= safeHeaders.length || 1 %>" class="px-5 py-14 text-center text-slate-400"><%= safeEmptyText %></td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>

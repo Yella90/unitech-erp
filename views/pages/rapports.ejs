@@ -1,0 +1,84 @@
+<%
+  const fmt = (value) => Number(value || 0).toLocaleString('fr-FR');
+  const finance = (reports && reports.finance) || {};
+  const solde = Number(finance.solde || 0);
+  const statusTone = solde >= 0 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-200';
+%>
+
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="text-base font-semibold">Rapports et statistiques globales</h2>
+        <p class="mt-1 text-sm text-slate-500">Vue d'ensemble sur la structure academique et les indicateurs financiers.</p>
+      </div>
+      <span class="rounded-full border px-3 py-1 text-xs font-semibold <%= statusTone %>">
+        Solde courant: <%= fmt(solde) %> FCFA
+      </span>
+    </div>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <%- include('../partials/card', { title: 'Classes', value: Number(reports && reports.totalClasses || 0), tone: 'tone-indigo', iconName: 'layers' }) %>
+    <%- include('../partials/card', { title: 'Eleves', value: Number(reports && reports.totalEleves || 0), tone: 'tone-emerald', iconName: 'users' }) %>
+    <%- include('../partials/card', { title: 'Enseignants', value: Number(reports && reports.totalEnseignants || 0), tone: 'tone-sky', iconName: 'graduation-cap' }) %>
+    <%- include('../partials/card', { title: 'Utilisateurs', value: Number(reports && reports.totalUsers || 0), tone: 'tone-amber', iconName: 'shield' }) %>
+  </div>
+
+  <div class="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+    <div class="card-shell overflow-hidden">
+      <div class="border-b border-slate-200 px-5 py-4">
+        <h3 class="text-sm font-semibold text-slate-900">Synthese financiere</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[520px] text-sm">
+          <thead class="bg-slate-50 text-slate-600">
+            <tr>
+              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Indicateur</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Valeur</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Lecture</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-5 py-3">Paiements</td>
+              <td class="px-5 py-3 font-medium"><%= fmt(finance.paiements) %> FCFA</td>
+              <td class="px-5 py-3 text-slate-500">Entrees de caisse</td>
+            </tr>
+            <tr>
+              <td class="px-5 py-3">Depenses</td>
+              <td class="px-5 py-3 font-medium"><%= fmt(finance.depenses) %> FCFA</td>
+              <td class="px-5 py-3 text-slate-500">Charges operationnelles</td>
+            </tr>
+            <tr>
+              <td class="px-5 py-3">Salaires</td>
+              <td class="px-5 py-3 font-medium"><%= fmt(finance.salaires) %> FCFA</td>
+              <td class="px-5 py-3 text-slate-500">Masse salariale</td>
+            </tr>
+            <tr>
+              <td class="px-5 py-3">Retraits promoteur</td>
+              <td class="px-5 py-3 font-medium"><%= fmt(finance.retraits) %> FCFA</td>
+              <td class="px-5 py-3 text-slate-500">Sorties hors exploitation</td>
+            </tr>
+            <tr class="bg-slate-50">
+              <td class="px-5 py-3 font-semibold text-slate-900">Solde net</td>
+              <td class="px-5 py-3 font-semibold <%= solde >= 0 ? 'text-emerald-700' : 'text-rose-700' %>"><%= fmt(solde) %> FCFA</td>
+              <td class="px-5 py-3 text-slate-500"><%= solde >= 0 ? 'Situation maitrisee' : 'Vigilance budgetaire' %></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-shell p-5 space-y-4">
+      <h3 class="text-sm font-semibold text-slate-900">Actions rapides</h3>
+      <p class="text-xs text-slate-500">Accedez directement aux modules de controle et d'ajustement.</p>
+      <div class="grid gap-2">
+        <a href="/finances" class="btn btn-secondary w-full text-left">Ouvrir finances</a>
+        <a href="/tresorerie" class="btn btn-secondary w-full text-left">Ouvrir tresorerie</a>
+        <a href="/notifications" class="btn btn-secondary w-full text-left">Voir retards paiements</a>
+        <a href="/bulletins/classe" class="btn btn-secondary w-full text-left">Consulter bulletins par classe</a>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,13 @@
+<tr class="transition hover:bg-slate-50/70">
+  <td class="px-5 py-3"><%= row.eleve_matricule || '-' %></td>
+  <td class="px-5 py-3"><%= row.matiere || '-' %></td>
+  <td class="px-5 py-3"><%= row.note_type || 'devoir' %></td>
+  <td class="px-5 py-3"><%= row.trimestre || '-' %></td>
+  <td class="px-5 py-3"><%= row.note %></td>
+  <td class="px-5 py-3"><%= row.annee || '-' %></td>
+  <td class="px-5 py-3 text-right">
+    <form method="POST" action="/notes/delete/<%= row.id %>" class="inline" data-confirm="Supprimer cette note ?">
+      <button class="btn btn-danger btn-sm" type="submit">Supprimer</button>
+    </form>
+  </td>
+</tr>

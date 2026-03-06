@@ -1,0 +1,17 @@
+<tr class="transition hover:bg-slate-50/70">
+  <td class="px-5 py-3"><%= row.matricule || '-' %></td>
+  <td class="px-5 py-3 font-medium text-slate-700"><%= row.full_name %></td>
+  <td class="px-5 py-3"><%= row.matiere || '-' %></td>
+  <td class="px-5 py-3"><%= row.type_payement || 'mensuel' %></td>
+  <td class="px-5 py-3">
+    <% const montPrev = (row.type_payement === 'horaire') ? (Number(row.taux_horaire || 0) * 160) : Number(row.salaire_base || 0); %>
+    <%= montPrev %> FCFA
+  </td>
+  <td class="px-5 py-3"><%= row.phone || '-' %></td>
+  <td class="px-5 py-3"><span class="badge <%= row.status === 'inactif' ? 'badge-warn' : 'badge-ok' %>"><%= row.status || 'actif' %></span></td>
+  <td class="px-5 py-3 text-right">
+    <form method="POST" action="/enseignants/delete/<%= row.id %>" class="inline" data-confirm="Supprimer cet enseignant ?">
+      <button class="btn btn-danger btn-sm" type="submit">Supprimer</button>
+    </form>
+  </td>
+</tr>

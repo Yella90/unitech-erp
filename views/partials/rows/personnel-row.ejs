@@ -1,0 +1,17 @@
+<tr class="transition hover:bg-slate-50/70">
+  <td class="px-5 py-3"><%= row.matricule || '-' %></td>
+  <td class="px-5 py-3"><%= row.full_name || ((row.nom || '') + ' ' + (row.prenom || '')).trim() || '-' %></td>
+  <td class="px-5 py-3"><%= row.role || '-' %></td>
+  <td class="px-5 py-3"><%= row.type_personnel || '-' %></td>
+  <td class="px-5 py-3"><%= row.type_payement || '-' %></td>
+  <td class="px-5 py-3"><span class="badge <%= row.statut === 'inactif' ? 'badge-warn' : 'badge-ok' %>"><%= row.statut || 'actif' %></span></td>
+  <td class="px-5 py-3 text-xs text-slate-600">
+    <div><%= row.phone || '-' %></div>
+    <div><%= row.email || '-' %></div>
+  </td>
+  <td class="px-5 py-3 text-right">
+    <form method="POST" action="/personnel/delete/<%= row.id %>" class="inline" data-confirm="Supprimer ce personnel ?">
+      <button class="btn btn-danger btn-sm" type="submit">Supprimer</button>
+    </form>
+  </td>
+</tr>

@@ -1,0 +1,50 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="text-base font-semibold">Detail de la demande #<%= transfer.id %></h2>
+      <a href="/transfers/incoming" class="btn btn-secondary">Retour</a>
+    </div>
+
+    <div class="mt-4 grid gap-4 md:grid-cols-2">
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm space-y-1">
+        <p><span class="font-semibold">Eleve:</span> <%= transfer.nom %> <%= transfer.prenom %></p>
+        <p><span class="font-semibold">Date naissance:</span> <%= transfer.date_naissance || '-' %></p>
+        <p><span class="font-semibold">Sexe:</span> <%= transfer.sexe || '-' %></p>
+        <p><span class="font-semibold">Student UUID:</span> <%= transfer.student_uuid %></p>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm space-y-1">
+        <p><span class="font-semibold">Ecole source:</span> <%= transfer.from_school_name %></p>
+        <p><span class="font-semibold">Ecole cible:</span> <%= transfer.to_school_name %></p>
+        <p><span class="font-semibold">Classe source:</span> <%= transfer.source_class_name || '-' %></p>
+        <p><span class="font-semibold">Classe cible estimee:</span> <%= transfer.target_class_name || '-' %></p>
+        <p>
+          <span class="font-semibold">Frais d'inscription a appliquer:</span>
+          <%= Number(transfer.estimated_frais_inscription || 0).toLocaleString('fr-FR') %> FCFA
+        </p>
+        <p><span class="font-semibold">Demande par:</span> <%= transfer.requested_by_name || '-' %></p>
+        <p><span class="font-semibold">Statut:</span> <%= transfer.status %></p>
+        <p><span class="font-semibold">Date demande:</span> <%= transfer.date_request || '-' %></p>
+        <p><span class="font-semibold">Date reponse:</span> <%= transfer.date_response || '-' %></p>
+        <p><span class="font-semibold">Repondu par:</span> <%= transfer.response_by_name || '-' %></p>
+      </div>
+    </div>
+
+    <% if (transfer.status === 'pending' && Number(transfer.estimated_frais_inscription || 0) > 0) { %>
+      <div class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+        A l'acceptation, ce montant sera enregistre automatiquement comme paiement d'inscription de l'eleve.
+      </div>
+    <% } %>
+
+    <div class="mt-4 flex flex-wrap gap-2">
+      <% if (transfer.status === 'pending') { %>
+        <form action="/transfers/<%= transfer.id %>/accept" method="POST" class="inline">
+          <button class="btn btn-primary" type="submit">Accepter</button>
+        </form>
+        <form action="/transfers/<%= transfer.id %>/reject" method="POST" class="inline">
+          <button class="btn btn-danger" type="submit">Refuser</button>
+        </form>
+      <% } %>
+      <a href="/students/<%= transfer.student_id %>/history" class="btn btn-secondary">Voir historique eleve</a>
+    </div>
+  </div>
+</section>

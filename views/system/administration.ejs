@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><%- include('../../partials/head') %><title>Administration academique</title></head>
+<body class="bg-gray-100 p-6">
+<div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+  <h1 class="text-2xl font-bold mb-4">Administration academique</h1>
+  <form method="POST" action="/administration" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <input class="border p-2 rounded" name="name" value="<%= school?.name || '' %>" placeholder="Nom ecole" required>
+    <input class="border p-2 rounded" name="email" value="<%= school?.email || '' %>" placeholder="Email" required>
+    <input class="border p-2 rounded" name="phone" value="<%= school?.phone || '' %>" placeholder="Telephone">
+    <input class="border p-2 rounded" name="address" value="<%= school?.address || '' %>" placeholder="Adresse">
+    <input class="border p-2 rounded" name="localisation" value="<%= school?.localisation || '' %>" placeholder="Localisation (Ville, Quartier...)">
+    <input class="border p-2 rounded" name="code_postal" value="<%= school?.code_postal || '' %>" placeholder="Code postal">
+    <input class="border p-2 rounded" name="promoter_name" value="<%= school?.promoter_name || '' %>" placeholder="Nom promoteur">
+    <input class="border p-2 rounded" name="director_name" value="<%= school?.director_name || '' %>" placeholder="Nom directeur">
+    <input class="border p-2 rounded md:col-span-2" name="logo_url" value="<%= school?.logo_url || '' %>" placeholder="Logo (URL image)">
+    <label for="">La date de le rentrer scolaire</label>
+    <input class="border p-2 rounded" type="date" name="daterentrer" value="<%= school?.daterentrer || '' %>" placeholder="Date rentree scolaire">
+    <label for="">ANNEE scolaire</label>
+
+    <select class="border p-2 rounded" name="current_school_year">
+      <option value="">Annee scolaire active</option>
+      <% (schoolYears || []).forEach((sy) => { %>
+        <option value="<%= sy %>" <%= (school?.current_school_year || activeSchoolYear) === sy ? 'selected' : '' %>><%= sy %></option>
+      <% }) %>
+    </select>
+    <div class="md:col-span-2"><button class="bg-blue-600 text-white px-4 py-2 rounded">Mettre a jour</button></div>
+  </form>
+
+  <div class="mt-8 border-t pt-6">
+    <h2 class="text-lg font-semibold mb-2">Abonnement de l'etablissement</h2>
+    <% if (latestSubscription) { %>
+      <p class="text-sm text-gray-600 mb-3">
+        Statut: <strong><%= latestSubscription.status || '-' %></strong> |
+        Plan: <strong><%= latestSubscription.plan_name || latestSubscription.plan_code || '-' %></strong> |
+        Cycle: <strong><%= latestSubscription.billing_cycle === 'annual' ? 'annuel' : 'mensuel' %></strong> |
+        Expire le: <strong><%= fmtDate(latestSubscription.expires_at) %></strong>
+      </p>
+    <% } else { %>
+      <p class="text-sm text-gray-600 mb-3">Aucun abonnement enregistre.</p>
+    <% } %>
+
+    <form method="POST" action="/administration/subscription/request" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div>
+        <label class="text-xs text-gray-600">Plan souhaite</label>
+        <select name="plan_code" class="w-full border p-2 rounded" required>
+          <option value="">Selectionner</option>
+          <% (plans || []).forEach((p) => { %>
+            <option value="<%= p.code %>"><%= p.name %> - <%= Number(p.price_monthly || 0) %> FCFA/mois - <%= Number(p.price_annual || 0) %> FCFA/an</option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-gray-600">Cycle de facturation</label>
+        <select name="billing_cycle" class="w-full border p-2 rounded">
+          <option value="monthly">Mensuel</option>
+          <option value="annual">Annuel (reduction)</option>
+        </select>
+      </div>
+      <div class="md:self-end">
+        <button class="w-full bg-emerald-600 text-white px-4 py-2 rounded">Demander changement</button>
+      </div>
+    </form>
+  </div>
+
+  <a href="/" class="inline-block mt-4 text-blue-600">Retour accueil</a>
+</div>
+</body>
+</html>

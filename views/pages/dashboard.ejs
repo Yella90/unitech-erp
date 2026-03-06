@@ -1,0 +1,215 @@
+<section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <%- include('../partials/card', { title: 'Total eleves', value: datas.totaleleves || 0, subtitle: 'Inscrits cette annee', tone: 'tone-indigo', iconName: 'users' }) %>
+  <%- include('../partials/card', { title: 'Total classes', value: datas.totalclasses || 0, subtitle: 'Niveaux actifs', tone: 'tone-emerald', iconName: 'layers' }) %>
+  <%- include('../partials/card', { title: 'Total recettes', value: (datas.tt || 0) + ' FCFA', subtitle: 'Encaissement cumule', tone: 'tone-sky', iconName: 'banknote' }) %>
+  <%- include('../partials/card', { title: 'Reste a couvrir', value: (datas.reste || 0) + ' FCFA', subtitle: 'Prevision moins encaissement', tone: 'tone-rose', iconName: 'chart-down' }) %>
+</section>
+
+<% if (datas.subscriptionStatus) { %>
+  <section class="card-shell p-4">
+    <p class="text-sm text-slate-600">
+      Abonnement: <strong><%= datas.subscriptionStatus.status || 'inconnu' %></strong>
+      <% if (datas.subscriptionStatus.planName) { %> - Plan: <strong><%= datas.subscriptionStatus.planName %></strong><% } %>
+      <% if (datas.subscriptionStatus.expiresAt) { %> - Expire le <strong><%= fmtDate(datas.subscriptionStatus.expiresAt) %></strong><% } %>
+    </p>
+  </section>
+<% } %>
+
+<section class="card-shell p-5">
+  <form action="/" method="GET" class="grid gap-3 md:grid-cols-[1fr_auto]">
+    <div>
+      <label class="form-label">Choisir le mois pour les graphes</label>
+      <select class="form-input" name="month">
+        <% (datas.monthOptions || []).forEach((m) => { %>
+          <option value="<%= m.value %>" <%= datas.activeMonth === m.value ? 'selected' : '' %>><%= m.label %></option>
+        <% }) %>
+      </select>
+    </div>
+    <button class="btn btn-primary md:self-end">Actualiser graphes</button>
+  </form>
+</section>
+
+<section class="grid gap-6 lg:grid-cols-2">
+  <div class="card-shell p-5">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-base font-semibold">Revenus vs sorties (6 derniers mois)</h2>
+      <span class="badge badge-neutral">Barres</span>
+    </div>
+    <div class="h-72"><canvas id="cashflowChart" class="h-full w-full"></canvas></div>
+  </div>
+
+  <div class="card-shell p-5">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-base font-semibold">Ecart prevision vs reel (mois actif)</h2>
+      <span class="badge badge-neutral">Courbe</span>
+    </div>
+    <div class="h-72"><canvas id="forecastGapChart" class="h-full w-full"></canvas></div>
+  </div>
+</section>
+
+<section class="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+  <div class="card-shell p-5">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-base font-semibold">Evolution du solde mensuel</h2>
+      <span class="badge badge-neutral">Aire</span>
+    </div>
+    <div class="h-72"><canvas id="soldeTrendChart" class="h-full w-full"></canvas></div>
+  </div>
+
+  <div class="card-shell p-5">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-base font-semibold">Structure des sorties (mois actif)</h2>
+      <span class="badge badge-neutral">Doughnut</span>
+    </div>
+    <div class="h-72"><canvas id="chargesSplitChart" class="h-full w-full"></canvas></div>
+  </div>
+</section>
+
+<section class="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Repere annee scolaire</h2>
+    <p class="mt-2 text-sm text-slate-600">
+      Date de rentree: <strong><%= datas.finance && datas.finance.startDate ? datas.finance.startDate : '-' %></strong>
+      <% if (datas.finance) { %>
+        - Mois ecoules: <strong><%= datas.finance.moisEcoules || 0 %></strong>
+      <% } %>
+    </p>
+    <p class="mt-1 text-xs text-slate-500">Mois du graphe: <strong><%= datas.activeMonth || '-' %></strong></p>
+    <p class="mt-3 text-xs text-slate-500">
+      Les previsions sont calculees a partir des classes actives, des salaires actifs et des moyennes depenses/retraits.
+    </p>
+  </div>
+
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Actions rapides</h2>
+    <div class="mt-4 space-y-2">
+      <a href="/eleves/inscription" class="btn btn-primary w-full">Inscrire un eleve</a>
+      <a href="/classes/add" class="btn btn-secondary w-full">Ajouter une classe</a>
+      <a href="/finances" class="btn btn-secondary w-full">Ouvrir finances</a>
+    </div>
+  </div>
+</section>
+
+<%- include('../partials/table', {
+  tableTitle: 'Classes recentes',
+  tableActionLabel: 'Voir toutes',
+  tableActionHref: '/classes',
+  headers: ['Nom', 'Cycle', 'Niveau', 'Annee', 'Mensualite', 'Frais inscription', 'Effectif', 'Effectif max', 'Actions'],
+  rows: datas.rows || [],
+  rowPartial: '../partials/rows/classes-row',
+  emptyText: 'Aucune classe enregistree.'
+}) %>
+
+<script src="/js/chart.umd.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Chart === 'undefined') return;
+    const timeline = <%- JSON.stringify((datas.finance && datas.finance.timeline) || []) %>;
+    const fmtFcfa = (v) => `${Number(v || 0).toLocaleString('fr-FR')} FCFA`;
+
+    const baseOptions = {
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${fmtFcfa(ctx.parsed.y ?? ctx.parsed)}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: { callback: (v) => `${Number(v || 0).toLocaleString('fr-FR')}` },
+          grid: { color: '#e2e8f0' }
+        },
+        x: { grid: { display: false } }
+      }
+    };
+
+    const labels = timeline.map((m) => m.label || m.key);
+    const revenusSeries = timeline.map((m) => Number(m.revenus || 0));
+    const sortiesSeries = timeline.map((m) => Number(m.sorties || 0));
+    const soldeSeries = timeline.map((m) => Number(m.solde || 0));
+    const active = timeline.length ? timeline[timeline.length - 1] : { depenses: 0, salaires: 0, retraits: 0 };
+
+    const cashflowCtx = document.getElementById('cashflowChart');
+    if (cashflowCtx) {
+      new Chart(cashflowCtx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Revenus', data: revenusSeries, backgroundColor: 'rgba(16, 185, 129, 0.75)', borderRadius: 8 },
+            { label: 'Sorties', data: sortiesSeries, backgroundColor: 'rgba(244, 63, 94, 0.75)', borderRadius: 8 }
+          ]
+        },
+        options: baseOptions
+      });
+    }
+
+    const gapCtx = document.getElementById('forecastGapChart');
+    if (gapCtx) {
+      const revForecastMensuel = <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.forecastMensuel : 0 %>;
+      const revActualMensuel = <%= datas.finance && datas.finance.revenus ? datas.finance.revenus.actualMensuel : 0 %>;
+      const depForecastMensuel = <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.forecastMensuel : 0 %>;
+      const depActualMensuel = <%= datas.finance && datas.finance.depenses ? datas.finance.depenses.actualMensuel : 0 %>;
+
+      new Chart(gapCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Revenus', 'Sorties'],
+          datasets: [
+            { label: 'Prevision', data: [revForecastMensuel, depForecastMensuel], backgroundColor: 'rgba(59, 130, 246, 0.72)', borderRadius: 8 },
+            { label: 'Reel', data: [revActualMensuel, depActualMensuel], backgroundColor: 'rgba(99, 102, 241, 0.72)', borderRadius: 8 }
+          ]
+        },
+        options: baseOptions
+      });
+    }
+
+    const soldeCtx = document.getElementById('soldeTrendChart');
+    if (soldeCtx) {
+      new Chart(soldeCtx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Solde mensuel',
+              data: soldeSeries,
+              borderColor: '#0ea5e9',
+              backgroundColor: 'rgba(14, 165, 233, 0.18)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 3
+            }
+          ]
+        },
+        options: baseOptions
+      });
+    }
+
+    const splitCtx = document.getElementById('chargesSplitChart');
+    if (splitCtx) {
+      new Chart(splitCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Depenses', 'Salaires', 'Retraits'],
+          datasets: [{
+            data: [Number(active.depenses || 0), Number(active.salaires || 0), Number(active.retraits || 0)],
+            backgroundColor: ['#ef4444', '#0ea5e9', '#f59e0b']
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.label}: ${fmtFcfa(ctx.parsed)}`
+              }
+            }
+          }
+        }
+      });
+    }
+  });
+</script>

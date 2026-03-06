@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNITECH ERP - Super Admin</title>
+  <link href="/css/output.css" rel="stylesheet">
+  <script defer src="/js/back-navigation.js"></script>
+</head>
+<body class="min-h-screen bg-[#F3F4F6] text-slate-800" data-back-fallback="/admin/dashboard">
+  <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-[#1E3A8A]">UNITECH ERP</p>
+        <h1 class="text-xl font-bold">Dashboard Super Admin</h1>
+      </div>
+      <form action="/auth/logout" method="POST">
+        <button class="rounded-xl bg-[#F97316] px-4 py-2 text-sm font-semibold text-white shadow hover:opacity-90" type="submit">
+          Deconnexion
+        </button>
+      </form>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl space-y-6 px-4 py-6">
+    <% if (error) { %>
+      <div class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"><%= error %></div>
+    <% } %>
+    <% if (success) { %>
+      <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"><%= success %></div>
+    <% } %>
+
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div class="rounded-xl bg-white p-4 shadow-lg">
+        <p class="text-xs uppercase tracking-wider text-slate-500">Total ecoles</p>
+        <p class="mt-1 text-3xl font-bold text-[#1E3A8A]"><%= stats.totalSchools || 0 %></p>
+      </div>
+      <div class="rounded-xl bg-white p-4 shadow-lg">
+        <p class="text-xs uppercase tracking-wider text-slate-500">Revenus mensuels</p>
+        <p class="mt-1 text-3xl font-bold text-[#1E3A8A]"><%= stats.saasRevenue || 0 %> FCFA</p>
+      </div>
+      <div class="rounded-xl bg-white p-4 shadow-lg">
+        <p class="text-xs uppercase tracking-wider text-slate-500">Abonnements actifs</p>
+        <p class="mt-1 text-3xl font-bold text-emerald-600"><%= stats.activeSubscriptions || 0 %></p>
+      </div>
+      <div class="rounded-xl bg-white p-4 shadow-lg">
+        <p class="text-xs uppercase tracking-wider text-slate-500">Abonnements expires</p>
+        <p class="mt-1 text-3xl font-bold text-rose-600"><%= stats.expiredSubscriptions || 0 %></p>
+      </div>
+    </section>
+
+    <section class="rounded-xl bg-white p-5 shadow-lg">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Visiteurs vitrine / entreprise</h2>
+        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+          Aujourd'hui: <%= Number(visitorAnalytics && visitorAnalytics.visitsToday || 0).toLocaleString('fr-FR') %>
+        </span>
+      </div>
+      <div class="grid gap-3 md:grid-cols-4">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <p class="text-xs text-slate-500">Total visites</p>
+          <p class="text-xl font-bold text-[#1E3A8A]"><%= Number(visitorAnalytics && visitorAnalytics.totalVisits || 0).toLocaleString('fr-FR') %></p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <p class="text-xs text-slate-500">Visiteurs uniques</p>
+          <p class="text-xl font-bold text-[#1E3A8A]"><%= Number(visitorAnalytics && visitorAnalytics.uniqueVisitors || 0).toLocaleString('fr-FR') %></p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <p class="text-xs text-slate-500">Visites 7 jours</p>
+          <p class="text-xl font-bold text-[#1E3A8A]"><%= Number(visitorAnalytics && visitorAnalytics.visits7d || 0).toLocaleString('fr-FR') %></p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <p class="text-xs text-slate-500">Pages tracees</p>
+          <p class="text-xl font-bold text-[#1E3A8A]"><%= Array.isArray(visitorAnalytics && visitorAnalytics.byPage) ? visitorAnalytics.byPage.length : 0 %></p>
+        </div>
+      </div>
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-500">
+              <th class="px-3 py-2 text-left">Page</th>
+              <th class="px-3 py-2 text-left">Visites</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (visitorAnalytics && visitorAnalytics.byPage ? visitorAnalytics.byPage : []).forEach((row) => { %>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2"><%= row.pagePath %></td>
+                <td class="px-3 py-2"><%= Number(row.visits || 0).toLocaleString('fr-FR') %></td>
+              </tr>
+            <% }) %>
+            <% if (!visitorAnalytics || !visitorAnalytics.byPage || !visitorAnalytics.byPage.length) { %>
+              <tr><td colspan="2" class="px-3 py-3 text-slate-500">Aucune visite enregistree.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rounded-xl bg-white p-5 shadow-lg">
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Super Admin UNITECH</h2>
+      </div>
+      <form method="POST" action="/admin/superadmins" class="grid gap-3 md:grid-cols-4">
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-500">Nom complet</label>
+          <input name="full_name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-500">Email</label>
+          <input type="email" name="email" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-500">Mot de passe temporaire</label>
+          <input type="password" name="password" minlength="8" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" required />
+        </div>
+        <div class="flex items-end">
+          <button class="w-full rounded-lg bg-[#1E3A8A] px-3 py-2 text-sm font-semibold text-white">Ajouter super admin</button>
+        </div>
+      </form>
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-500">
+              <th class="px-3 py-2 text-left">Nom</th>
+              <th class="px-3 py-2 text-left">Email</th>
+              <th class="px-3 py-2 text-left">Date creation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (superAdmins || []).forEach((sa) => { %>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2"><%= sa.full_name %></td>
+                <td class="px-3 py-2"><%= sa.email %></td>
+                <td class="px-3 py-2"><%= fmtDateTime(sa.created_at) %></td>
+              </tr>
+            <% }) %>
+            <% if (!superAdmins || !superAdmins.length) { %>
+              <tr><td colspan="3" class="px-3 py-3 text-slate-500">Aucun super admin enregistre.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rounded-xl bg-white p-5 shadow-lg">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Abonnements en attente</h2>
+        <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"><%= stats.pendingSubscriptions || 0 %> en attente</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-500">
+              <th class="px-3 py-2 text-left">Ecole</th>
+              <th class="px-3 py-2 text-left">Plan</th>
+              <th class="px-3 py-2 text-left">Montant</th>
+              <th class="px-3 py-2 text-left">Cycle</th>
+              <th class="px-3 py-2 text-left">Cree le</th>
+              <th class="px-3 py-2 text-left">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (pendingSubscriptions || []).forEach((row) => { %>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2"><%= row.school_name %></td>
+                <td class="px-3 py-2"><%= row.plan_name || row.plan_code %></td>
+                <td class="px-3 py-2"><%= Number(row.amount || 0) %> FCFA</td>
+                <td class="px-3 py-2"><%= row.billing_cycle === 'annual' ? 'annuel' : 'mensuel' %></td>
+                <td class="px-3 py-2"><%= fmtDateTime(row.created_at) %></td>
+                <td class="px-3 py-2">
+                  <div class="flex flex-wrap gap-2">
+                    <form method="POST" action="/admin/subscriptions/<%= row.id %>/validate">
+                      <button class="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">Valider abonnement</button>
+                    </form>
+                    <form method="POST" action="/admin/subscriptions/<%= row.id %>/suspend">
+                      <button class="rounded-lg bg-rose-600 px-3 py-1 text-xs font-semibold text-white">Suspendre abonnement</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+            <% if (!pendingSubscriptions || !pendingSubscriptions.length) { %>
+              <tr><td colspan="6" class="px-3 py-3 text-slate-500">Aucun abonnement en attente.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rounded-xl bg-white p-5 shadow-lg">
+      <h2 class="mb-3 text-lg font-semibold">Gestion etablissements</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-500">
+              <th class="px-3 py-2 text-left">Ecole</th>
+              <th class="px-3 py-2 text-left">Plan</th>
+              <th class="px-3 py-2 text-left">Abonnement</th>
+              <th class="px-3 py-2 text-left">Expire le</th>
+              <th class="px-3 py-2 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (schools || []).forEach((school) => { %>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2">
+                  <p class="font-semibold"><%= school.name %></p>
+                  <p class="text-xs text-slate-500"><%= school.email %></p>
+                </td>
+                <td class="px-3 py-2"><%= school.subscription_plan %></td>
+                <td class="px-3 py-2">
+                  <% const st = String(school.subscription_status || '').toLowerCase(); %>
+                  <% if (st === 'active') { %><span class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">actif</span><% } %>
+                  <% if (st === 'pending') { %><span class="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">pending</span><% } %>
+                  <% if (st === 'suspended') { %><span class="rounded-full bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-700">suspendu</span><% } %>
+                  <% if (st === 'expired') { %><span class="rounded-full bg-slate-200 px-2 py-1 text-xs font-semibold text-slate-700">expire</span><% } %>
+                  <% if (!st) { %><span class="rounded-full bg-slate-200 px-2 py-1 text-xs font-semibold text-slate-700">-</span><% } %>
+                </td>
+                <td class="px-3 py-2"><%= fmtDate(school.subscription_expires_at) %></td>
+                <td class="px-3 py-2 space-y-2">
+                  <div class="flex flex-wrap gap-2">
+                    <% if (Number(school.is_active) === 1) { %>
+                      <form method="POST" action="/admin/schools/<%= school.id %>/deactivate">
+                        <button class="rounded-lg bg-rose-600 px-3 py-1 text-xs font-semibold text-white">Suspendre ecole</button>
+                      </form>
+                    <% } else { %>
+                      <form method="POST" action="/admin/schools/<%= school.id %>/activate">
+                        <button class="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">Activer ecole</button>
+                      </form>
+                    <% } %>
+                  </div>
+                  <% if (school.subscription_id) { %>
+                    <div class="flex flex-wrap gap-2">
+                      <% if (String(school.subscription_status || '').toLowerCase() === 'suspended') { %>
+                        <form method="POST" action="/admin/subscriptions/<%= school.subscription_id %>/activate">
+                          <button class="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">Reactiver abonnement</button>
+                        </form>
+                      <% } else { %>
+                        <form method="POST" action="/admin/subscriptions/<%= school.subscription_id %>/suspend">
+                          <button class="rounded-lg bg-rose-600 px-3 py-1 text-xs font-semibold text-white">Suspendre abonnement</button>
+                        </form>
+                      <% } %>
+                    </div>
+                  <% } %>
+                  <form method="POST" action="/admin/schools/<%= school.id %>/plan" class="flex flex-wrap gap-2">
+                    <select name="plan_code" class="rounded-lg border border-slate-200 px-2 py-1 text-xs">
+                      <% (plans || []).forEach((p) => { %>
+                        <option value="<%= p.code %>" <%= school.subscription_plan === p.code ? 'selected' : '' %>>
+                          <%= p.name %> - <%= p.price_monthly %> FCFA/mois - <%= p.price_annual %> FCFA/an
+                        </option>
+                      <% }) %>
+                    </select>
+                    <select name="billing_cycle" class="rounded-lg border border-slate-200 px-2 py-1 text-xs">
+                      <option value="monthly" <%= school.billing_cycle === 'monthly' ? 'selected' : '' %>>mensuel</option>
+                      <option value="annual" <%= school.billing_cycle === 'annual' ? 'selected' : '' %>>annuel</option>
+                    </select>
+                    <button class="rounded-lg bg-[#1E3A8A] px-3 py-1 text-xs font-semibold text-white">Modifier plan</button>
+                  </form>
+                  <details class="rounded-lg border border-slate-200 p-2">
+                    <summary class="cursor-pointer text-xs font-semibold text-slate-700">Modifier informations etablissement</summary>
+                    <form method="POST" action="/admin/schools/<%= school.id %>/update" class="mt-3 grid gap-2 md:grid-cols-2">
+                      <input name="name" value="<%= school.name || '' %>" class="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="Nom ecole" required />
+                      <input name="email" value="<%= school.email || '' %>" class="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="Email ecole" required />
+                      <input name="phone" value="<%= school.phone || '' %>" class="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="Telephone" />
+                      <input name="address" value="<%= school.address || '' %>" class="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="Adresse" />
+                      <input name="localisation" value="<%= school.localisation || '' %>" class="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="Localisation" />
+                      <input name="code_postal" value="<%= school.code_postal || '' %>" class="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="Code postal" />
+                      <input name="logo_url" value="<%= school.logo_url || '' %>" class="rounded border border-slate-200 px-2 py-1 text-xs md:col-span-2" placeholder="Logo URL" />
+                      <input name="promoter_name" value="<%= school.promoter_name || '' %>" class="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="Promoteur" />
+                      <input name="director_name" value="<%= school.director_name || '' %>" class="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="Directeur" />
+                      <button class="rounded bg-slate-800 px-3 py-1 text-xs font-semibold text-white md:col-span-2">Enregistrer infos</button>
+                    </form>
+                  </details>
+                  <form method="POST" action="/admin/schools/<%= school.id %>/reset-admin-password" class="flex flex-wrap gap-2">
+                    <input type="password" name="new_password" minlength="8" class="rounded-lg border border-slate-200 px-2 py-1 text-xs" placeholder="Nouveau mot de passe admin ecole" required />
+                    <button class="rounded-lg bg-amber-600 px-3 py-1 text-xs font-semibold text-white">Reinitialiser mot de passe</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rounded-xl bg-white p-5 shadow-lg">
+      <h2 class="mb-3 text-lg font-semibold">Logs activites</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-500">
+              <th class="px-3 py-2 text-left">Date</th>
+              <th class="px-3 py-2 text-left">Action</th>
+              <th class="px-3 py-2 text-left">Ecole</th>
+              <th class="px-3 py-2 text-left">Acteur</th>
+              <th class="px-3 py-2 text-left">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (logs || []).forEach((l) => { %>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2"><%= fmtDateTime(l.created_at) %></td>
+                <td class="px-3 py-2"><%= l.action %></td>
+                <td class="px-3 py-2"><%= l.school_name || '-' %></td>
+                <td class="px-3 py-2"><%= l.actor_name || 'systeme' %></td>
+                <td class="px-3 py-2"><%= l.details || '-' %></td>
+              </tr>
+            <% }) %>
+            <% if (!logs || !logs.length) { %>
+              <tr><td colspan="5" class="px-3 py-3 text-slate-500">Aucun log disponible.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rounded-xl bg-white p-5 shadow-lg">
+      <h2 class="mb-3 text-lg font-semibold">Positions visiteurs (vitrine / entreprise)</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-500">
+              <th class="px-3 py-2 text-left">Pays</th>
+              <th class="px-3 py-2 text-left">Region</th>
+              <th class="px-3 py-2 text-left">Ville</th>
+              <th class="px-3 py-2 text-left">Latitude</th>
+              <th class="px-3 py-2 text-left">Longitude</th>
+              <th class="px-3 py-2 text-left">Visites</th>
+              <th class="px-3 py-2 text-left">Derniere visite</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (visitorAnalytics && visitorAnalytics.locations ? visitorAnalytics.locations : []).forEach((row) => { %>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2"><%= row.countryCode %> <%= row.countryName && row.countryName !== '-' ? '(' + row.countryName + ')' : '' %></td>
+                <td class="px-3 py-2"><%= row.region || '-' %></td>
+                <td class="px-3 py-2"><%= row.city || '-' %></td>
+                <td class="px-3 py-2"><%= row.latitude === null ? '-' : row.latitude %></td>
+                <td class="px-3 py-2"><%= row.longitude === null ? '-' : row.longitude %></td>
+                <td class="px-3 py-2"><%= Number(row.visits || 0).toLocaleString('fr-FR') %></td>
+                <td class="px-3 py-2"><%= fmtDateTime(row.lastVisitAt) %></td>
+              </tr>
+            <% }) %>
+            <% if (!visitorAnalytics || !visitorAnalytics.locations || !visitorAnalytics.locations.length) { %>
+              <tr><td colspan="7" class="px-3 py-3 text-slate-500">Aucune position visiteur disponible.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

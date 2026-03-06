@@ -1,0 +1,103 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <form action="/finances" method="GET" class="grid gap-3 md:grid-cols-[220px_1fr_auto]">
+      <div>
+        <label class="form-label">Periode</label>
+        <select class="form-input" name="period">
+          <option value="annual" <%= activePeriod === 'annual' ? 'selected' : '' %>>Annuelle</option>
+          <option value="monthly" <%= activePeriod === 'monthly' ? 'selected' : '' %>>Mensuelle</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Mois</label>
+        <select class="form-input" name="month">
+          <% (monthOptions || []).forEach((m) => { %>
+            <option value="<%= m.value %>" <%= activeMonth === m.value ? 'selected' : '' %>><%= m.label %></option>
+          <% }) %>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary md:self-end">Appliquer</button>
+    </form>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <%- include('../partials/card', { title: 'Paiements ' + (activePeriod === 'monthly' ? '(mois)' : '(annuel)'), value: (summary.paiements || 0) + ' FCFA', tone: 'tone-emerald', iconName: 'banknote' }) %>
+    <%- include('../partials/card', { title: 'Depenses ' + (activePeriod === 'monthly' ? '(mois)' : '(annuel)'), value: (summary.depenses || 0) + ' FCFA', tone: 'tone-rose', iconName: 'chart-down' }) %>
+    <%- include('../partials/card', { title: 'Salaires ' + (activePeriod === 'monthly' ? '(mois)' : '(annuel)'), value: (summary.salaires || 0) + ' FCFA', tone: 'tone-sky', iconName: 'users' }) %>
+    <%- include('../partials/card', { title: 'Solde ' + (activePeriod === 'monthly' ? '(mois)' : '(annuel)'), value: (summary.solde || 0) + ' FCFA', tone: 'tone-indigo', iconName: 'layers' }) %>
+  </div>
+
+  <% if (tuitionForecast) { %>
+    <div class="card-shell p-5 space-y-4">
+      <h2 class="text-base font-semibold">Prevision mensualites par classe</h2>
+      <p class="text-xs text-slate-500">
+        Date rentree: <strong><%= tuitionForecast.startDate || '-' %></strong> |
+        Mois ecoules: <strong><%= tuitionForecast.moisEcoules || 0 %></strong>
+      </p>
+      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">Mensuel prevu: <strong><%= tuitionForecast.totalMensuelPrevu || 0 %> FCFA</strong></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">Cumule prevu: <strong><%= tuitionForecast.totalCumulePrevu || 0 %> FCFA</strong></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">Cumule paye: <strong><%= tuitionForecast.totalPayeCumule || 0 %> FCFA</strong></div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">Reste cumule: <strong><%= tuitionForecast.totalResteCumule || 0 %> FCFA</strong></div>
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm">Net mensuel prevu: <strong><%= tuitionForecast.netMensuelPrevu || 0 %> FCFA</strong></div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-600">
+              <th class="px-3 py-2 text-left">Classe</th>
+              <th class="px-3 py-2 text-left">Mensualite</th>
+              <th class="px-3 py-2 text-left">Effectif</th>
+              <th class="px-3 py-2 text-left">Attendu mensuel</th>
+              <th class="px-3 py-2 text-left">Attendu cumule</th>
+              <th class="px-3 py-2 text-left">Paye cumule</th>
+              <th class="px-3 py-2 text-left">Reste</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (tuitionForecast.classes || []).forEach((row) => { %>
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-2"><%= row.nom %></td>
+                <td class="px-3 py-2"><%= row.mensualite %> FCFA</td>
+                <td class="px-3 py-2"><%= row.effectif %></td>
+                <td class="px-3 py-2"><%= row.attendu_mensuel %> FCFA</td>
+                <td class="px-3 py-2"><%= row.attendu_cumule %> FCFA</td>
+                <td class="px-3 py-2"><%= row.paye_cumule %> FCFA</td>
+                <td class="px-3 py-2 font-medium"><%= row.reste_cumule %> FCFA</td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Ajouter un paiement</h2>
+    <form method="POST" action="/finances/paiements" class="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div><label class="form-label">Matricule eleve</label><input class="form-input" name="eleve_matricule" /></div>
+      <div><label class="form-label">Montant</label><input class="form-input" type="number" name="montant" required /></div>
+      <div>
+        <label class="form-label">Mois</label>
+        <select class="form-input" name="mois" required>
+          <% (monthOptions || []).forEach((m) => { %>
+            <option value="<%= m.value %>" <%= activeMonth === m.value ? 'selected' : '' %>><%= m.label %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div><label class="form-label">Date paiement</label><input class="form-input" type="date" name="date_payement" /></div>
+      <div><label class="form-label">Mode</label><input class="form-input" name="mode_payement" /></div>
+      <div><label class="form-label">Annee scolaire</label><input class="form-input" name="annee_scolaire" value="<%= activeSchoolYear || '' %>" readonly /></div>
+      <div class="md:col-span-3 xl:col-span-6"><button class="btn btn-primary w-full sm:w-auto" type="submit">Enregistrer paiement</button></div>
+    </form>
+  </div>
+
+  <%- include('../partials/table', {
+    tableTitle: 'Paiements recents',
+    headers: ['Matricule', 'Mois', 'Mode', 'Status', 'Montant', 'Actions'],
+    rows: paiements || [],
+    rowPartial: '../partials/rows/paiements-row',
+    emptyText: 'Aucun paiement enregistre.'
+  }) %>
+</section>

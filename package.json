@@ -1,0 +1,86 @@
+{
+  "name": "pro",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "node tests/run-tests.js",
+    "dev": "nodemon app.js",
+    "start": "node app.js",
+    "build:css": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css --watch",
+    "db:pg:test": "node scripts/test-postgres-connection.js",
+    "db:school:key": "node scripts/generate-school-api-key.js",
+    "backup:sqlite": "powershell -ExecutionPolicy Bypass -File .\\scripts\\backup-sqlite.ps1",
+    "backup:postgres": "powershell -ExecutionPolicy Bypass -File .\\scripts\\backup-postgres.ps1",
+    "electron:start": "electron .",
+    "obfuscate:js": "node scripts/obfuscate-js.js",
+    "electron:dist": "powershell -ExecutionPolicy Bypass -File .\\scripts\\electron-dist.ps1",
+    "electron:dist:publish": "powershell -ExecutionPolicy Bypass -File .\\scripts\\electron-publish.ps1",
+    "electron:dist:update": "powershell -ExecutionPolicy Bypass -Command \"if (-not $env:ELECTRON_UPDATE_URL) { throw 'ELECTRON_UPDATE_URL is required' }; .\\scripts\\electron-dist.ps1\"",
+    "electron:dist:mac": "electron-builder --mac dmg"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "chart.js": "^4.5.1",
+    "connect-flash": "^0.1.1",
+    "dotenv": "^17.3.1",
+    "ejs": "^4.0.1",
+    "electron-updater": "^6.8.3",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "method-override": "^3.0.0",
+    "pdfkit": "^0.17.2",
+    "pg": "^8.18.0",
+    "sqlite3": "^5.0.2",
+    "tesseract.js": "^5.1.1",
+    "uuid": "^13.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.24",
+    "electron": "^37.2.6",
+    "electron-builder": "^26.8.1",
+    "javascript-obfuscator": "^5.3.0",
+    "nodemon": "^3.1.11",
+    "png-to-ico": "^3.0.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.4"
+  },
+  "build": {
+    "appId": "com.unitech.erp",
+    "productName": "Unitech ERP",
+    "artifactName": "Unitech-ERP-${version}.${ext}",
+    "extraMetadata": {
+      "unitechRuntime": {
+        "electronUpdateProvider": "${env.ELECTRON_UPDATE_PROVIDER}",
+        "electronUpdateUrl": "${env.ELECTRON_UPDATE_URL}",
+        "ghOwner": "${env.GH_OWNER}",
+        "ghRepo": "${env.GH_REPO}"
+      }
+    },
+    "files": [
+      "**/*",
+      "!tests/**",
+      "!docs/**",
+      "!dist/**",
+      "!database.sqlite",
+      "!.env",
+      "public/**"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    }
+  },
+  "main": "electron/main.js"
+}

@@ -1,0 +1,49 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Nouvel enseignant</h2>
+    <form method="POST" action="/enseignants" class="mt-4 grid gap-3 md:grid-cols-4">
+      <div class="md:col-span-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+        Le matricule est genere automatiquement lors de la creation.
+      </div>
+      <div><label class="form-label">Nom complet</label><input class="form-input" name="full_name" required /></div>
+      <div><label class="form-label">Email</label><input type="email" class="form-input" name="email" /></div>
+      <div><label class="form-label">Telephone</label><input class="form-input" name="phone" /></div>
+      <div>
+        <label class="form-label">Matiere</label>
+        <select class="form-input" name="matiere" required <%= !(matieres && matieres.length) ? 'disabled' : '' %>>
+          <option value="">Selectionner une matiere</option>
+          <% (matieres || []).forEach((m) => { %>
+            <option value="<%= m.nom %>"><%= m.nom %></option>
+          <% }) %>
+        </select>
+        <% if (!(matieres && matieres.length)) { %>
+          <p class="mt-1 text-xs text-amber-700">Aucune matiere disponible. Ajoutez d'abord une matiere dans la section Matieres.</p>
+        <% } %>
+      </div>
+      <div>
+        <label class="form-label">Type paiement</label>
+        <select class="form-input" name="type_payement">
+          <option value="mensuel">Mensuel</option>
+          <option value="horaire">Horaire</option>
+          <option value="forfait">Forfait</option>
+        </select>
+      </div>
+      <div><label class="form-label">Salaire base</label><input class="form-input" type="number" name="salaire_base" min="0" /></div>
+      <div><label class="form-label">Taux horaire</label><input class="form-input" type="number" name="taux_horaire" min="0" /></div>
+      <div><label class="form-label">Statut</label><select class="form-input" name="status"><option value="actif">Actif</option><option value="inactif">Inactif</option></select></div>
+      <div class="md:col-span-4">
+        <button class="btn btn-primary w-full sm:w-auto" type="submit" <%= !(matieres && matieres.length) ? 'disabled' : '' %>>
+          Ajouter enseignant
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <%- include('../partials/table', {
+    tableTitle: 'Liste des enseignants',
+    headers: ['Matricule', 'Nom', 'Matiere', 'Paiement', 'Montant prevu', 'Telephone', 'Statut', 'Actions'],
+    rows: enseignants || [],
+    rowPartial: '../partials/rows/enseignants-row',
+    emptyText: 'Aucun enseignant enregistre.'
+  }) %>
+</section>

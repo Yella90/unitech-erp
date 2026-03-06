@@ -1,0 +1,133 @@
+<%
+  const rows = Array.isArray(salaires) ? salaires : [];
+  const totalMontant = rows.reduce((sum, r) => sum + Number(r.montant || 0), 0);
+  const fmt = (v) => Number(v || 0).toLocaleString('fr-FR');
+%>
+
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <h3 class="text-sm font-semibold text-slate-900">Filtrer l'historique</h3>
+    <form method="GET" action="/salaires" class="mt-3 grid gap-3 md:grid-cols-[220px_1fr_auto_auto]">
+      <div>
+        <label class="form-label">Type</label>
+        <select class="form-input" name="source_type">
+          <option value="">Tous</option>
+          <option value="personnel" <%= filters && filters.source_type === 'personnel' ? 'selected' : '' %>>Personnel</option>
+          <option value="enseignant" <%= filters && filters.source_type === 'enseignant' ? 'selected' : '' %>>Enseignant</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Matricule</label>
+        <input class="form-input" name="matricule" value="<%= filters && filters.matricule ? filters.matricule : '' %>" list="staff-matricules" placeholder="Ex: ENS001" />
+        <datalist id="staff-matricules">
+          <% (staffOptions || []).forEach((s) => { %>
+            <option value="<%= s.matricule %>"><%= (s.full_name || '-') + ' (' + s.type + ')' %></option>
+          <% }) %>
+        </datalist>
+      </div>
+      <button class="btn btn-primary md:self-end" type="submit">Filtrer</button>
+      <a href="/salaires" class="btn btn-secondary md:self-end">Reinitialiser</a>
+    </form>
+  </div>
+
+  <div class="card-shell p-5">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="text-base font-semibold">Paiements de salaires</h2>
+        <p class="mt-1 text-sm text-slate-500">Enregistrez les paiements et suivez rapidement le total verse.</p>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-right">
+        <p class="text-xs uppercase tracking-wide text-slate-500">Total enregistre</p>
+        <p class="text-lg font-bold text-slate-900"><%= fmt(totalMontant) %> FCFA</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid gap-5 lg:grid-cols-[1.1fr_1.9fr]">
+    <div class="card-shell p-5">
+      <h3 class="text-sm font-semibold text-slate-900">Nouveau paiement</h3>
+      <form method="POST" action="/salaires" class="mt-4 space-y-3">
+        <div>
+          <label class="form-label">Matricule personnel</label>
+          <input class="form-input" name="personnel_matricule" placeholder="Ex: ENS001" />
+        </div>
+        <div>
+          <label class="form-label">Mois</label>
+          <select class="form-input" name="mois" required>
+            <% (monthOptions || []).forEach((m) => { %>
+              <option value="<%= m.value %>" <%= activeMonth === m.value ? 'selected' : '' %>><%= m.label %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Montant</label>
+          <input class="form-input" type="number" min="0" name="montant" placeholder="Ex: 75000" required />
+        </div>
+        <div>
+          <label class="form-label">Mode paiement</label>
+          <select class="form-input" name="mode_payement">
+            <option value="">Selectionner</option>
+            <option value="cash">Cash</option>
+            <option value="mobile_money">Mobile money</option>
+            <option value="virement">Virement</option>
+            <option value="cheque">Cheque</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Date paiement</label>
+          <input class="form-input" type="date" name="date_payement" />
+        </div>
+        <button class="btn btn-primary w-full sm:w-auto" type="submit">Enregistrer paiement</button>
+      </form>
+    </div>
+
+    <div class="card-shell overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <h3 class="text-sm font-semibold text-slate-900">Historique des salaires</h3>
+        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"><%= rows.length %> ligne(s)</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[760px] text-sm">
+          <thead class="bg-slate-50 text-slate-600">
+            <tr>
+              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Matricule</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Type</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Mois</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Montant</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Mode</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide">Date</th>
+              <th class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <% rows.forEach((s) => { %>
+              <tr class="hover:bg-slate-50/70">
+                <td class="px-5 py-3"><%= s.personnel_matricule || '-' %></td>
+                <td class="px-5 py-3"><%= s.source_type || '-' %></td>
+                <td class="px-5 py-3"><%= s.mois || '-' %></td>
+                <td class="px-5 py-3 font-medium"><%= fmt(s.montant) %> FCFA</td>
+                <td class="px-5 py-3"><%= s.mode_payement || '-' %></td>
+                <td class="px-5 py-3"><%= fmtDate(s.date_payement) %></td>
+                <td class="px-5 py-3 text-right">
+                  <form method="POST" action="/salaires/delete/<%= s.id %>" class="inline" data-confirm="Supprimer ce paiement de salaire ?">
+                    <button class="btn btn-danger btn-sm" type="submit">Supprimer</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+
+            <% if (!rows.length) { %>
+              <tr>
+                <td colspan="7" class="px-5 py-12 text-center">
+                  <p class="text-sm font-medium text-slate-600">Aucun salaire enregistre.</p>
+                  <p class="mt-1 text-xs text-slate-500">Ajoutez un premier paiement via le formulaire a gauche.</p>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>

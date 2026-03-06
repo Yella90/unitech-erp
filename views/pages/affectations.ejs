@@ -1,0 +1,45 @@
+<section class="space-y-5">
+  <div class="card-shell p-5">
+    <h2 class="text-base font-semibold">Nouvelle affectation</h2>
+    <form method="POST" action="/affectations" class="mt-4 grid gap-3 md:grid-cols-4">
+      <div>
+        <label class="form-label">Classe</label>
+        <select class="form-input" name="classe" required>
+          <option value="">Selectionner</option>
+          <% (classes || []).forEach((c) => { %>
+            <option value="<%= c.nom %>"><%= c.nom %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Matiere</label>
+        <select class="form-input" name="matiere" required>
+          <option value="">Selectionner</option>
+          <% (matieres || []).forEach((m) => { %>
+            <option value="<%= m.nom %>"><%= m.nom %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Enseignant</label>
+        <select class="form-input" name="enseignant_matricule" required>
+          <option value="">Selectionner</option>
+          <% (enseignants || []).forEach((e) => { %>
+            <option value="<%= e.matricule %>"><%= e.full_name %> (<%= e.matricule %>)</option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="flex items-end">
+        <button class="btn btn-primary w-full" type="submit">Affecter</button>
+      </div>
+    </form>
+  </div>
+
+  <%- include('../partials/table', {
+    tableTitle: 'Affectations enregistrees',
+    headers: ['Classe', 'Matiere', 'Enseignant', 'Matricule', 'Actions'],
+    rows: affectations || [],
+    rowPartial: '../partials/rows/affectations-row',
+    emptyText: 'Aucune affectation enregistree.'
+  }) %>
+</section>

@@ -1,0 +1,9 @@
+<tr class="transition hover:bg-slate-50/70">
+  <td class="px-5 py-3 font-medium text-slate-700"><%= row.matricule || '-' %></td>
+  <td class="px-5 py-3"><%= (row.nom || '') + ' ' + (row.prenom || '') %></td>
+  <td class="px-5 py-3"><%= row.classe || '-' %></td>
+  <td class="px-5 py-3"><%= row.mensuel || 0 %> FCFA</td>
+  <td class="px-5 py-3"><%= row.total_paye || 0 %> FCFA</td>
+  <td class="px-5 py-3"><%= row.total_du || 0 %> FCFA</td>
+  <td class="px-5 py-3 font-semibold <%= row.reste > 0 ? 'text-rose-600' : 'text-emerald-600' %>"><%= row.reste || 0 %> FCFA</td>
+</tr>

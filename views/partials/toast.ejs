@@ -1,0 +1,16 @@
+<%
+  const safeSuccess = typeof success !== 'undefined' ? success : '';
+  const safeError = typeof error !== 'undefined' ? error : '';
+  const safeWarning = typeof warning !== 'undefined' ? warning : '';
+%>
+<div id="toast-stack" class="fixed right-4 top-4 z-[60] w-full max-w-sm space-y-2">
+  <% if (safeSuccess) { %>
+    <div class="toast toast-success"><strong>Succes</strong><span><%= safeSuccess %></span></div>
+  <% } %>
+  <% if (safeError) { %>
+    <div class="toast toast-error"><strong>Erreur</strong><span><%= safeError %></span></div>
+  <% } %>
+  <% if (safeWarning) { %>
+    <div class="toast toast-warning"><strong>Attention</strong><span><%= safeWarning %></span></div>
+  <% } %>
+</div>
