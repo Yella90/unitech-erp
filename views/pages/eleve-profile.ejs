@@ -51,7 +51,13 @@
         <div>
           <p class="text-xs font-medium text-slate-500 mb-2">Acte de naissance</p>
           <% if (eleve.photo_acte_naissance) { %>
-            <img src="<%= eleve.photo_acte_naissance %>" alt="Acte de naissance" class="h-40 w-full rounded-lg border border-slate-200 object-cover" />
+            <% if ((eleve.photo_acte_naissance || '').toLowerCase().includes('.pdf')) { %>
+              <a href="<%= eleve.photo_acte_naissance %>" target="_blank" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-indigo-700">
+                Voir le PDF
+              </a>
+            <% } else { %>
+              <img src="<%= eleve.photo_acte_naissance %>" alt="Acte de naissance" class="h-40 w-full rounded-lg border border-slate-200 object-cover" />
+            <% } %>
           <% } else { %>
             <div class="h-40 w-full rounded-lg border border-dashed border-slate-300 grid place-items-center text-xs text-slate-500">Aucun document</div>
           <% } %>

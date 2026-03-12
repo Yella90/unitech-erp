@@ -1,6 +1,6 @@
 {
   "name": "Unitech-ERP",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Unitech ERP - gestion d'établissement",
   "main": "electron/main.js",
   "type": "commonjs",
@@ -17,6 +17,7 @@
     "electron:start": "electron .",
     "obfuscate:js": "node scripts/obfuscate-js.js",
     "electron:dist": "powershell -ExecutionPolicy Bypass -File .\\scripts\\electron-dist.ps1",
+    "sync:reconcile": "node scripts/sync-reconcile.js",
     "electron:dist:publish": "powershell -ExecutionPolicy Bypass -File .\\scripts\\electron-publish.ps1",
     "electron:dist:update": "powershell -ExecutionPolicy Bypass -Command \"if (-not $env:ELECTRON_UPDATE_URL) { throw 'ELECTRON_UPDATE_URL is required' }; .\\scripts\\electron-dist.ps1\"",
     "electron:dist:mac": "electron-builder --mac dmg",

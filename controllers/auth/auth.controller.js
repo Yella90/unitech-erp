@@ -1,5 +1,7 @@
 const AuthService = require("../../services/auth/auth.service");
 const SubscriptionService = require("../../subscription/subscription.service");
+const { get } = require("../../utils/dbAsync");
+const RealtimeSyncService = require("../../services/sync/realtime-sync.service");
 
 exports.showRegisterSchool = async (req, res) => {
   try {
@@ -16,6 +18,15 @@ exports.registerSchool = async (req, res) => {
     const required = ["schoolName", "schoolEmail", "adminName", "adminEmail", "adminPassword"];
     for (const key of required) {
       if (!req.body[key]) throw new Error(`Champ requis manquant: ${key}`);
+    }
+
+    const countRow = await get("SELECT COUNT(*) AS total FROM schools", []);
+    const isFirstSetup = Number((countRow && countRow.total) || 0) === 0;
+    if (isFirstSetup) {
+      const online = await RealtimeSyncService.canReachCentral();
+      if (!online) {
+        throw new Error("Connexion internet requise pour creer le premier etablissement (activation en ligne)");
+      }
     }
 
     await AuthService.registerSchoolWithAdmin(req.body);
@@ -47,6 +58,11 @@ exports.login = async (req, res) => {
       subscription_plan: user.subscription_plan,
       school_is_active: user.school_is_active
     };
+
+    const shouldBootstrap = RealtimeSyncService.isEnabled();
+    if (shouldBootstrap) {
+      RealtimeSyncService.syncTick().catch(() => {});
+    }
 
     if (user.role === "superadmin") {
       return res.redirect("/admin/dashboard");

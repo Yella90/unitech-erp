@@ -35,7 +35,7 @@
     <div>
       <label class="form-label">Photo de profil (fichier)</label>
       <input type="hidden" name="existing_photo_profil" value="<%= old?.photo_profil || '' %>" />
-      <input class="form-input" type="file" name="photo_profil" accept="image/jpeg,image/png,image/webp" />
+      <input class="form-input" type="file" name="photo_profil" accept="image/*" />
       <% if (old?.photo_profil) { %>
         <p class="mt-1 text-xs text-slate-500">Actuel: <a href="<%= old.photo_profil %>" target="_blank" class="text-indigo-600">voir fichier</a></p>
       <% } %>
@@ -43,7 +43,7 @@
     <div>
       <label class="form-label">Acte de naissance (fichier)</label>
       <input type="hidden" name="existing_photo_acte_naissance" value="<%= old?.photo_acte_naissance || '' %>" />
-      <input class="form-input" type="file" name="photo_acte_naissance" accept="image/jpeg,image/png,image/webp" />
+      <input class="form-input" type="file" name="photo_acte_naissance" accept="image/*,application/pdf" />
       <% if (old?.photo_acte_naissance) { %>
         <p class="mt-1 text-xs text-slate-500">Actuel: <a href="<%= old.photo_acte_naissance %>" target="_blank" class="text-indigo-600">voir fichier</a></p>
       <% } %>

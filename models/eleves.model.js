@@ -32,6 +32,9 @@ const EleveModel = {
   getAllBySchool: (schoolId, callback) => {
     const sql = `
       SELECT e.*,
+             COALESCE(e.dateNaissance, e.datenaissance) AS "dateNaissance",
+             COALESCE(e.nomparent, e."nomparent") AS "nomParent",
+             COALESCE(e.telparent, e."telparent") AS telparent,
              (SELECT s.id FROM students s WHERE s.uuid = e.student_uuid LIMIT 1) AS student_id
       FROM eleves e
       WHERE e.school_id = ?
@@ -43,6 +46,9 @@ const EleveModel = {
   getAllBySchoolAndMatricule: (schoolId, matricule, callback) => {
     const sql = `
       SELECT e.*,
+             COALESCE(e.dateNaissance, e.datenaissance) AS "dateNaissance",
+             COALESCE(e.nomparent, e."nomparent") AS "nomParent",
+             COALESCE(e.telparent, e."telparent") AS telparent,
              (SELECT s.id FROM students s WHERE s.uuid = e.student_uuid LIMIT 1) AS student_id
       FROM eleves e
       WHERE e.school_id = ? AND e.matricule LIKE ?
@@ -56,7 +62,9 @@ const EleveModel = {
     const classe = String((filters && filters.classe) || "").trim();
     const params = [schoolId];
     let sql = `
-      SELECT e.*,
+      SELECT e.*, COALESCE(e.dateNaissance, e.datenaissance) AS "dateNaissance",
+             COALESCE(e.nomparent, e."nomparent") AS "nomParent",
+             COALESCE(e.telparent, e."telparent") AS telparent,
              (SELECT s.id FROM students s WHERE s.uuid = e.student_uuid LIMIT 1) AS student_id
       FROM eleves e
       WHERE e.school_id = ?
@@ -77,7 +85,9 @@ const EleveModel = {
 
   getByClassOrdered: (schoolId, classe, callback) => {
     const sql = `
-      SELECT e.matricule, e.nom, e.prenom, e.classe,
+      SELECT e.matricule, e.nom, e.prenom, e.classe, COALESCE(e.dateNaissance, e.datenaissance) AS "dateNaissance",
+             COALESCE(e.nomparent, e."nomparent") AS "nomParent",
+             COALESCE(e.telparent, e."telparent") AS telparent,
              (SELECT s.id FROM students s WHERE s.uuid = e.student_uuid LIMIT 1) AS student_id
       FROM eleves e
       WHERE e.school_id = ? AND e.classe = ?
@@ -128,6 +138,9 @@ const EleveModel = {
   getByMatricule: (schoolId, matricule, callback) => {
     const sql = `
       SELECT e.*,
+             COALESCE(e.dateNaissance, e.datenaissance) AS "dateNaissance",
+             COALESCE(e.nomparent, e."nomparent") AS "nomParent",
+             COALESCE(e.telparent, e."telparent") AS telparent,
              (SELECT s.id FROM students s WHERE s.uuid = e.student_uuid LIMIT 1) AS student_id
       FROM eleves e
       WHERE e.school_id = ? AND e.matricule = ?
@@ -137,7 +150,9 @@ const EleveModel = {
 
   getProfileByMatricule: (schoolId, matricule, callback) => {
     const eleveSql = `
-      SELECT e.*,
+      SELECT e.*, COALESCE(e.dateNaissance, e.datenaissance) AS "dateNaissance",
+             COALESCE(e.nomparent, e."nomparent") AS "nomParent",
+             COALESCE(e.telparent, e."telparent") AS telparent,
              (SELECT s.id FROM students s WHERE s.uuid = e.student_uuid LIMIT 1) AS student_id
       FROM eleves e
       WHERE e.school_id = ? AND e.matricule = ?
@@ -149,7 +164,8 @@ const EleveModel = {
       ORDER BY created_at DESC
     `;
     const notesSummarySql = `
-      SELECT matiere, trimestre, COALESCE(annee, '') AS annee, ROUND(AVG(note), 2) AS moyenne
+      SELECT matiere, trimestre, COALESCE(annee, '') AS annee,
+             ROUND(CAST(AVG(note) AS NUMERIC), 2) AS moyenne
       FROM notes
       WHERE school_id = ? AND eleve_matricule = ?
       GROUP BY matiere, trimestre, COALESCE(annee, '')
@@ -209,6 +225,10 @@ const EleveModel = {
       INSERT INTO classes (school_id, nom, niveau, annee, mensuel, frais_inscription, effectif_max, effectif, totalapaie, totalpaie)
       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0)
     `;
+    const dateNaissanceStr = String(dateNaissance || "").trim();
+    const parsedDate = dateNaissanceStr ? new Date(dateNaissanceStr) : null;
+    const dateNaissanceSql =
+      parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : null;
     const insertEleveSql = `
       INSERT INTO eleves (
         school_id, matricule, nom, prenom, classe, sexe, dateNaissance, nomParent, telparent, photo_profil, photo_acte_naissance, caise
@@ -250,7 +270,7 @@ const EleveModel = {
               prenom,
               targetClassName,
               String(sexe || "").trim() || null,
-              dateNaissance,
+              dateNaissanceSql,
               nomparent,
               telparent,
               String(photo_profil || "").trim() || null,

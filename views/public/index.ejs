@@ -403,6 +403,43 @@
 
   
 
+    <section class="mx-auto max-w-7xl px-4 pb-16">
+      <h2 class="reveal text-3xl font-black text-[#1E3A8A]">Synchronisation Web / Desktop</h2>
+      <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <article class="feature-card reveal rounded-xl bg-white p-5 shadow-lg" data-reveal-delay="60">
+          <div class="mb-2 inline-flex rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">Web app</div>
+          <h3 class="font-semibold text-[#1E3A8A]">Acces direct au Postgres central</h3>
+          <p class="mt-2 text-sm text-slate-600">Depuis le navigateur (mobile ou tablette), les utilisateurs lisent et ecrivent en temps reel sur la base centrale.</p>
+          <ul class="mt-3 space-y-1 text-sm text-slate-500">
+            <li>• Zero installation</li>
+            <li>• Donnees toujours a jour</li>
+            <li>• Ideal pour direction/enseignants en deplacement</li>
+          </ul>
+        </article>
+
+        <article class="feature-card reveal rounded-xl bg-white p-5 shadow-lg" data-reveal-delay="120">
+          <div class="mb-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Desktop offline-first</div>
+          <h3 class="font-semibold text-[#1E3A8A]">SQLite local + sync auto</h3>
+          <p class="mt-2 text-sm text-slate-600">L'executable Electron travaille en local (SQLite) et synchronise vers le Postgres central des que le reseau revient.</p>
+          <ul class="mt-3 space-y-1 text-sm text-slate-500">
+            <li>• Fonctionne sans connexion</li>
+            <li>• Push/pull auto a chaque reconnexion</li>
+            <li>• Cycle planifie toutes les 15 minutes</li>
+          </ul>
+        </article>
+
+        <article class="feature-card reveal rounded-xl bg-white p-5 shadow-lg" data-reveal-delay="180">
+          <div class="mb-2 inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">Concordance</div>
+          <h3 class="font-semibold text-[#1E3A8A]">Hydratation & reprise</h3>
+          <p class="mt-2 text-sm text-slate-600">Au premier lancement en ligne, le desktop rapatrie les donnees du central pour avoir la meme base que le web.</p>
+          <ul class="mt-3 space-y-1 text-sm text-slate-500">
+            <li>• Conflits resolus par version la plus recente</li>
+            <li>• Suppressions logiques propagees</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
     <section id="pricing" class="mx-auto max-w-7xl px-4 pb-16">
       <h2 class="reveal text-3xl font-black text-[#1E3A8A]">Plans d'abonnement</h2>
       <div class="mt-6 grid gap-4 lg:grid-cols-3">

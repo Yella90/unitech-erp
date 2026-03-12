@@ -546,11 +546,25 @@ async function syncTick() {
 }
 
 function getStatusSnapshot() {
+  const mode = localSqlite ? "sqlite" : "postgres";
+  const centralConfigured = Boolean(centralUrl);
+  const connected = mode === "postgres" ? true : syncStatus.connected;
   return {
     ...syncStatus,
-    mode: localSqlite ? "sqlite" : "postgres",
-    centralConfigured: Boolean(centralUrl)
+    mode,
+    centralConfigured,
+    connected
   };
+}
+
+async function canReachCentral() {
+  if (!isEnabled()) return false;
+  try {
+    await pingCentral();
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 async function getQueueStats(schoolId) {
@@ -631,5 +645,6 @@ module.exports = {
   isEnabled,
   syncTick,
   getStatusSnapshot,
+  canReachCentral,
   getDetailedStatus
 };

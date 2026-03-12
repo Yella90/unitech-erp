@@ -12,6 +12,61 @@ const githubReleaseCache = {
   pending: null
 };
 
+const landingCache = {
+  expiresAt: 0,
+  data: null,
+  ttlMs: 5_000,
+  pending: null
+};
+
+async function getLandingData() {
+  const now = Date.now();
+  if (landingCache.data && landingCache.expiresAt > now) return landingCache.data;
+  if (landingCache.pending) return landingCache.pending;
+
+  landingCache.pending = Promise.all([
+    SubscriptionService.listPlans(),
+    get("SELECT COUNT(*) AS total FROM schools", []),
+    get("SELECT COUNT(*) AS total FROM eleves", []),
+    get("SELECT COUNT(*) AS total FROM schools WHERE is_active = 1", []),
+    get(
+      `
+        SELECT COUNT(*) AS total
+        FROM schools s
+        WHERE EXISTS (
+          SELECT 1
+          FROM saas_subscriptions ss
+          WHERE ss.school_id = s.id
+            AND lower(trim(COALESCE(ss.status, ''))) = 'active'
+            AND (
+              ss.expires_at IS NULL
+              OR date(ss.expires_at) >= date('now')
+            )
+            AND ss.id = (
+              SELECT x.id
+              FROM saas_subscriptions x
+              WHERE x.school_id = s.id
+              ORDER BY x.created_at DESC, x.id DESC
+              LIMIT 1
+            )
+        )
+        `,
+      []
+    ),
+    VisitorTrackingService.getLandingStats()
+  ]).then((result) => {
+    landingCache.expiresAt = Date.now() + landingCache.ttlMs;
+    landingCache.data = result;
+    landingCache.pending = null;
+    return result;
+  }).catch((err) => {
+    landingCache.pending = null;
+    throw err;
+  });
+
+  return landingCache.pending;
+}
+
 function toNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
@@ -83,37 +138,7 @@ exports.index = (req, res) => {
 
 exports.landing = async (req, res) => {
   try {
-    const [plans, schoolsRow, elevesRow, activeSchoolsRow, activeSubsRow, visitorStats] = await Promise.all([
-      SubscriptionService.listPlans(),
-      get("SELECT COUNT(*) AS total FROM schools", []),
-      get("SELECT COUNT(*) AS total FROM eleves", []),
-      get("SELECT COUNT(*) AS total FROM schools WHERE is_active = 1", []),
-      get(
-        `
-        SELECT COUNT(*) AS total
-        FROM schools s
-        WHERE EXISTS (
-          SELECT 1
-          FROM saas_subscriptions ss
-          WHERE ss.school_id = s.id
-            AND lower(trim(COALESCE(ss.status, ''))) = 'active'
-            AND (
-              ss.expires_at IS NULL
-              OR date(ss.expires_at) >= date('now')
-            )
-            AND ss.id = (
-              SELECT x.id
-              FROM saas_subscriptions x
-              WHERE x.school_id = s.id
-              ORDER BY x.created_at DESC, x.id DESC
-              LIMIT 1
-            )
-        )
-        `,
-        []
-      ),
-      VisitorTrackingService.getLandingStats()
-    ]);
+    const [plans, schoolsRow, elevesRow, activeSchoolsRow, activeSubsRow, visitorStats] = await getLandingData();
 
     const totalSchools = Number((schoolsRow && schoolsRow.total) || 0);
     const totalEleves = Number((elevesRow && elevesRow.total) || 0);

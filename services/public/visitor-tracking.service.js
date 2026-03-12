@@ -5,8 +5,9 @@ function cleanText(value, maxLen = 255) {
 }
 
 function normalizePagePath(rawPath) {
-  const p = cleanText(rawPath, 120).toLowerCase();
-  if (p === "/" || p === "/vitrine") return "/vitrine";
+  const p = cleanText(rawPath, 120).toLowerCase().replace(/\/+$/, "");
+  if (p === "" || p === "/") return "/vitrine";
+  if (p === "/vitrine") return "/vitrine";
   if (p === "/entreprise") return "/entreprise";
   return null;
 }
