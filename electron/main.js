@@ -1,6 +1,9 @@
+require("dotenv").config();
 const path = require("path");
 const fs = require("fs");
 const http = require("http");
+const dns = require("dns").promises;
+const { URL } = require("url");
 const { app, BrowserWindow, dialog, session } = require("electron");
 const { autoUpdater } = require("electron-updater");
 
@@ -34,14 +37,45 @@ function cleanupBrokenCache() {
   }
 }
 
-function bootBackend() {
+function extractPgHost() {
+  if (process.env.PGHOST) return String(process.env.PGHOST).trim();
+  if (process.env.DATABASE_URL) {
+    try {
+      return new URL(process.env.DATABASE_URL).hostname;
+    } catch (_) {
+      return null;
+    }
+  }
+  return null;
+}
+
+async function ensureDbClient() {
+  const client = String(process.env.DB_CLIENT || "").trim().toLowerCase();
+  if (client !== "postgres") return "sqlite";
+  const host = extractPgHost();
+  if (!host) return "postgres";
+  try {
+    await dns.lookup(host);
+    return "postgres";
+  } catch (_) {
+    console.warn(`PostgreSQL host unreachable (${host}), falling back to SQLite.`);
+    process.env.DB_CLIENT = "sqlite";
+    return "sqlite";
+  }
+}
+
+async function bootBackend() {
   if (backendBooted) return;
   backendBooted = true;
 
   const userDataDir = app.getPath("userData");
-  process.env.SQLITE_PATH = path.join(userDataDir, "unitech.sqlite");
+  // Respect explicit env (e.g., Postgres) but provide sane defaults for offline mode.
+  process.env.SQLITE_PATH = process.env.SQLITE_PATH || path.join(userDataDir, "unitech.sqlite");
   process.env.DB_CLIENT = process.env.DB_CLIENT || "sqlite";
-  process.env.DB_MINIMAL_BOOTSTRAP = "1";
+  const resolvedClient = await ensureDbClient();
+  if (!process.env.DB_MINIMAL_BOOTSTRAP) {
+    process.env.DB_MINIMAL_BOOTSTRAP = resolvedClient === "postgres" ? "0" : "1";
+  }
   process.env.SESSION_SECRET = process.env.SESSION_SECRET || "unitech_desktop_session_secret";
   process.env.JWT_SECRET = process.env.JWT_SECRET || "unitech_desktop_jwt_secret";
   process.env.SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || "superadmin@unitech.local";
@@ -104,8 +138,8 @@ function createWindow() {
   const port = Number(process.env.PORT || 3000);
   const baseUrl = process.env.ELECTRON_APP_URL || `http://localhost:${port}`;
 
-  bootBackend();
-  waitForServer(`${baseUrl}/api/v1/health`)
+  bootBackend()
+    .then(() => waitForServer(`${baseUrl}/api/v1/health`))
     .then(() => win.loadURL(baseUrl))
     .catch(() => {
       win.loadURL(`data:text/html,

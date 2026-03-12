@@ -1,63 +1,74 @@
+let selectedAdapter = null;
+let db = null;
 const usePostgres = String(process.env.DB_CLIENT || "").trim().toLowerCase() === "postgres";
 if (usePostgres) {
-  module.exports = require("./db.postgres-adapter");
-} else {
-const path = require("path");
-const fs = require("fs");
-const sqlite3 = require("sqlite3").verbose();
-
-const sqlitePath = process.env.SQLITE_PATH
-  ? path.resolve(process.env.SQLITE_PATH)
-  : path.resolve(__dirname, "..", "database.sqlite");
-const minimalBootstrap = String(process.env.DB_MINIMAL_BOOTSTRAP || "0") === "1";
-const sqliteDir = path.dirname(sqlitePath);
-if (!fs.existsSync(sqliteDir)) {
-  fs.mkdirSync(sqliteDir, { recursive: true });
+  const pgAdapter = require("./db.postgres-adapter");
+  if (!pgAdapter.__pgInitFailed) {
+    selectedAdapter = pgAdapter;
+  } else {
+    process.env.DB_CLIENT = "sqlite";
+    console.warn("PostgreSQL unavailable, falling back to SQLite.");
+  }
 }
 
-const db = new sqlite3.Database(sqlitePath, (err) => {
-  if (err) {
-    console.error("Database connection error:", err.message);
-  } else {
-    console.log(`SQLite connected (${sqlitePath})`);
+module.exports = selectedAdapter || db;
+if (!selectedAdapter) {
+  const path = require("path");
+  const fs = require("fs");
+  const sqlite3 = require("sqlite3").verbose();
+
+  const sqlitePath = process.env.SQLITE_PATH
+    ? path.resolve(process.env.SQLITE_PATH)
+    : path.resolve(__dirname, "..", "database.sqlite");
+  const minimalBootstrap = String(process.env.DB_MINIMAL_BOOTSTRAP || "0") === "1";
+  const sqliteDir = path.dirname(sqlitePath);
+  if (!fs.existsSync(sqliteDir)) {
+    fs.mkdirSync(sqliteDir, { recursive: true });
   }
-});
 
-db.serialize(() => {
-  db.run("PRAGMA foreign_keys = ON");
+  db = new sqlite3.Database(sqlitePath, (err) => {
+    if (err) {
+      console.error("Database connection error:", err.message);
+    } else {
+      console.log(`SQLite connected (${sqlitePath})`);
+    }
+  });
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS schools (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      promoter_name TEXT,
-      director_name TEXT,
-      email TEXT NOT NULL UNIQUE,
-      phone TEXT,
-      address TEXT,
-      localisation TEXT,
-      logo_url TEXT,
-      code_postal TEXT,
-      subscription_plan TEXT NOT NULL DEFAULT 'basic',
-      is_active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+  db.serialize(() => {
+    db.run("PRAGMA foreign_keys = ON");
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS subscription_plans (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      code TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      max_students INTEGER NOT NULL,
-      max_teachers INTEGER NOT NULL,
-      finance_enabled INTEGER NOT NULL DEFAULT 0,
-      price_monthly INTEGER NOT NULL DEFAULT 0,
-      price_annual INTEGER NOT NULL DEFAULT 0,
-      annual_discount_percent INTEGER NOT NULL DEFAULT 15,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS schools (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        promoter_name TEXT,
+        director_name TEXT,
+        email TEXT NOT NULL UNIQUE,
+        phone TEXT,
+        address TEXT,
+        localisation TEXT,
+        logo_url TEXT,
+        code_postal TEXT,
+        subscription_plan TEXT NOT NULL DEFAULT 'basic',
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS subscription_plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        max_students INTEGER NOT NULL,
+        max_teachers INTEGER NOT NULL,
+        finance_enabled INTEGER NOT NULL DEFAULT 0,
+        price_monthly INTEGER NOT NULL DEFAULT 0,
+        price_annual INTEGER NOT NULL DEFAULT 0,
+        annual_discount_percent INTEGER NOT NULL DEFAULT 15,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
@@ -1002,7 +1013,8 @@ function ensureColumn(tableName, columnName, definition) {
   });
 }
 
-module.exports = db;
+  selectedAdapter = selectedAdapter || db;
+  module.exports = selectedAdapter;
 }
 
 function installSyncTriggers(db) {

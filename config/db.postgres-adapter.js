@@ -61,7 +61,6 @@ function rewriteSqliteSqlToPostgres(sql) {
   rewritten = rewritten.replace(/\bINSERT\s+OR\s+IGNORE\b/gi, "INSERT");
   rewritten = rewritten.replace(/\bdatetime\('now'\)/gi, "CURRENT_TIMESTAMP");
   rewritten = rewritten.replace(/\bdate\('now'\)/gi, "CURRENT_DATE");
-  rewritten = rewritten.replace(/\bMAX\s*\(/g, "GREATEST(");
 
   if (hadInsertOrIgnore && !/\bON\s+CONFLICT\b/i.test(rewritten)) {
     rewritten = `${rewritten.replace(/;\s*$/, "")} ON CONFLICT DO NOTHING`;
@@ -399,6 +398,17 @@ async function initPostgresSchema() {
     `CREATE INDEX IF NOT EXISTS idx_sync_queue_school_status_created ON sync_queue (school_id, status, created_at ASC)`,
     `DROP INDEX IF EXISTS idx_sync_queue_uuid_created_unique`,
     `CREATE INDEX IF NOT EXISTS idx_sync_queue_uuid_created ON sync_queue (uuid, created_at)`,
+    `CREATE TABLE IF NOT EXISTS sync_state (
+      table_name TEXT PRIMARY KEY,
+      last_pulled_at TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS sync_runtime (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      triggers_disabled INTEGER NOT NULL DEFAULT 0
+    )`,
+    `INSERT INTO sync_runtime (id, triggers_disabled)
+      VALUES (1, 0)
+      ON CONFLICT (id) DO NOTHING`,
     `ALTER TABLE schools ADD COLUMN IF NOT EXISTS api_key_hash TEXT`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS uuid TEXT`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP`,
@@ -687,6 +697,8 @@ initPostgresSchema()
   })
   .catch((err) => {
     console.error("PostgreSQL init error:", err.message);
+    db.__pgInitFailed = true;
+    db.__pgInitError = err;
   });
 
 module.exports = db;

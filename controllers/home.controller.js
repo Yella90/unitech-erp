@@ -128,8 +128,20 @@ exports.landing = async (req, res) => {
       disponibilite: Math.round((activeSubscriptions / safeDenominator) * 100)
     };
 
-    return res.render("public/index", { plans: plans || [], metrics, visitorStats: visitorStats || {} });
+    const downloadLinks = {
+      windows:
+        process.env.DESKTOP_WINDOWS_INSTALLER_URL ||
+        "https://github.com/Yella90/unitech-erp/releases/download/v1.1.0/Unitech-ERP-1.1.0.exe",
+      mac: "/download/desktop/mac"
+    };
+    return res.render("public/index", { plans: plans || [], metrics, visitorStats: visitorStats || {}, downloadLinks });
   } catch (err) {
+    const downloadLinks = {
+      windows:
+        process.env.DESKTOP_WINDOWS_INSTALLER_URL ||
+        "https://github.com/Yella90/unitech-erp/releases/download/v1.1.0/Unitech-ERP-1.1.0.exe",
+      mac: "/download/desktop/mac"
+    };
     return res.render("public/index", {
       plans: [],
       metrics: {
@@ -142,13 +154,20 @@ exports.landing = async (req, res) => {
         totalVisits: 0,
         uniqueVisitors: 0,
         visitsToday: 0
-      }
+      },
+      downloadLinks
     });
   }
 };
 
 exports.entreprise = (req, res) => {
-  return res.render("public/entreprise");
+  const downloadLinks = {
+    windows:
+      process.env.DESKTOP_WINDOWS_INSTALLER_URL ||
+      "https://github.com/Yella90/unitech-erp/releases/download/v1.1.0/Unitech-ERP-1.1.0.exe",
+    mac: "/download/desktop/mac"
+  };
+  return res.render("public/entreprise", { downloadLinks });
 };
 
 exports.trackPublicVisit = async (req, res) => {

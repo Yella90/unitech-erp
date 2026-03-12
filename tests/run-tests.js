@@ -21,6 +21,9 @@ async function main() {
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "erp-tests-"));
   process.chdir(tempDir);
+  // Force a clean isolated SQLite DB for tests to avoid clashes with real data
+  process.env.DB_CLIENT = "sqlite";
+  process.env.SQLITE_PATH = path.join(tempDir, "test-database.sqlite");
 
   db = require(path.join(projectRoot, "config/db.js"));
   ({ run, get, all } = require(path.join(projectRoot, "utils/dbAsync.js")));

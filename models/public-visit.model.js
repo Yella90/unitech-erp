@@ -104,19 +104,22 @@ const PublicVisitModel = {
       ),
       all(
         `
-        SELECT
-          COALESCE(country_code, '-') AS country_code,
-          COALESCE(country_name, '-') AS country_name,
-          COALESCE(region, '-') AS region,
-          COALESCE(city, '-') AS city,
-          latitude,
-          longitude,
-          COUNT(*) AS visits,
-          MAX(created_at) AS last_visit_at
-        FROM public_visits
-        WHERE page_path IN ('/vitrine', '/entreprise')
-        GROUP BY country_code, country_name, region, city, latitude, longitude
-        ORDER BY last_visit_at DESC
+        SELECT *
+        FROM (
+          SELECT
+            COALESCE(country_code, '-') AS country_code,
+            COALESCE(country_name, '-') AS country_name,
+            COALESCE(region, '-') AS region,
+            COALESCE(city, '-') AS city,
+            latitude,
+            longitude,
+            COUNT(*) AS visits,
+            MAX(created_at) AS last_visit_at
+          FROM public_visits
+          WHERE page_path IN ('/vitrine', '/entreprise')
+          GROUP BY country_code, country_name, region, city, latitude, longitude
+        ) agg
+        ORDER BY agg.last_visit_at DESC
         LIMIT 200
         `
       )
