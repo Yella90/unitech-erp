@@ -1,6 +1,6 @@
 {
   "name": "Unitech-ERP",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Unitech ERP - gestion d'établissement",
   "main": "electron/main.js",
   "type": "commonjs",
