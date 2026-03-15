@@ -1,4 +1,4 @@
-require("dotenv").config();
+const dotenv = require("dotenv");
 const path = require("path");
 const fs = require("fs");
 const http = require("http");
@@ -12,6 +12,38 @@ app.setPath("sessionData", path.join(app.getPath("userData"), "session-data"));
 
 let backendBooted = false;
 let mainWindow = null;
+
+function loadEnvFile() {
+  const candidates = [];
+  const cwdEnv = path.join(process.cwd(), ".env");
+  candidates.push(cwdEnv);
+
+  if (app && typeof app.getPath === "function") {
+    const userDataEnv = path.join(app.getPath("userData"), ".env");
+    candidates.unshift(userDataEnv);
+  }
+
+  if (app && app.isPackaged) {
+    const exeDirEnv = path.join(path.dirname(process.execPath), ".env");
+    const resourcesEnv = path.join(process.resourcesPath, ".env");
+    const asarEnv = path.join(process.resourcesPath, "app.asar", ".env");
+    candidates.push(exeDirEnv, resourcesEnv, asarEnv);
+  }
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        dotenv.config({ path: candidate });
+        return candidate;
+      }
+    } catch (_) {
+      // ignore fs errors and continue to next candidate
+    }
+  }
+
+  dotenv.config();
+  return null;
+}
 
 function readPackagedRuntimeConfig() {
   try {
@@ -68,6 +100,10 @@ async function bootBackend() {
   if (backendBooted) return;
   backendBooted = true;
 
+  loadEnvFile();
+
+  process.env.ELECTRON_DESKTOP = "1";
+
   const userDataDir = app.getPath("userData");
   // Respect explicit env (e.g., Postgres) but provide sane defaults for offline mode.
   process.env.SQLITE_PATH = process.env.SQLITE_PATH || path.join(userDataDir, "unitech.sqlite");
@@ -91,7 +127,7 @@ async function bootBackend() {
   require(path.join(__dirname, "..", "app.js"));
 }
 
-function waitForServer(url, timeoutMs = 20_000) {
+function waitForServer(url, timeoutMs = 60_000) {
   const startedAt = Date.now();
 
   return new Promise((resolve, reject) => {
@@ -141,12 +177,28 @@ function createWindow() {
   bootBackend()
     .then(() => waitForServer(`${baseUrl}/api/v1/health`))
     .then(() => win.loadURL(baseUrl))
-    .catch(() => {
+    .catch((err) => {
+      const userDataDir = app.getPath("userData");
+      const logPath = path.join(userDataDir, "backend-error.log");
+      const details = err && (err.stack || err.message || String(err));
+      try {
+        fs.writeFileSync(
+          logPath,
+          `[${new Date().toISOString()}] Backend startup failed\n${details || "Unknown error"}\n`,
+          "utf8"
+        );
+      } catch (_) {
+        // ignore logging failures
+      }
+
+      const safeDetails = details ? String(details).replace(/[<>]/g, "") : "Erreur inconnue";
       win.loadURL(`data:text/html,
         <html><body style="font-family:sans-serif;padding:24px">
           <h2>Backend non demarre</h2>
           <p>Impossible de demarrer le serveur local.</p>
           <p>URL attendue: ${baseUrl}</p>
+          <p>Details: ${safeDetails}</p>
+          <p>Log: ${logPath}</p>
         </body></html>`);
     });
 

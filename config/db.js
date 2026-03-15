@@ -42,6 +42,7 @@ if (!selectedAdapter) {
     db.run(`
       CREATE TABLE IF NOT EXISTS schools (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        central_school_id INTEGER,
         name TEXT NOT NULL,
         promoter_name TEXT,
         director_name TEXT,
@@ -554,6 +555,7 @@ if (!selectedAdapter) {
   ensureColumn("depenses", "description", "TEXT");
   ensureColumn("depenses", "date_depenses", "TEXT");
   ensureColumn("depenses", "valide_par", "TEXT");
+  ensureColumn("schools", "central_school_id", "INTEGER");
   ensureColumn("schools", "promoter_name", "TEXT");
   ensureColumn("schools", "director_name", "TEXT");
   ensureColumn("schools", "localisation", "TEXT");

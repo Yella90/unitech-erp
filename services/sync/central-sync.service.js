@@ -72,12 +72,13 @@ async function centralGetLatestSubscriptionBySchoolEmail(schoolEmail) {
 
 async function upsertLocalSchoolFromCentral(centralUser) {
   const schoolEmail = String(centralUser.school_email || "").trim().toLowerCase();
+  const centralSchoolId = Number(centralUser.school_id || 0) || null;
   const existing = await get("SELECT id FROM schools WHERE lower(trim(email)) = lower(trim(?)) LIMIT 1", [schoolEmail]);
   if (existing && existing.id) {
     await run(
       `
         UPDATE schools
-        SET name = ?, phone = ?, address = ?, subscription_plan = ?, is_active = ?
+        SET name = ?, phone = ?, address = ?, subscription_plan = ?, is_active = ?, central_school_id = COALESCE(?, central_school_id)
         WHERE id = ?
       `,
       [
@@ -86,6 +87,7 @@ async function upsertLocalSchoolFromCentral(centralUser) {
         centralUser.school_address || "",
         centralUser.school_subscription_plan || "basic",
         Number(centralUser.school_is_active || 0) === 1 ? 1 : 0,
+        centralSchoolId,
         existing.id
       ]
     );
@@ -94,10 +96,11 @@ async function upsertLocalSchoolFromCentral(centralUser) {
 
   const created = await run(
     `
-      INSERT INTO schools (name, email, phone, address, subscription_plan, is_active)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO schools (central_school_id, name, email, phone, address, subscription_plan, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `,
     [
+      centralSchoolId,
       centralUser.school_name || "Ecole",
       schoolEmail,
       centralUser.school_phone || "",

@@ -25,8 +25,11 @@
       <a href="/finances" class="nav-link <%= activeNav === 'finances' ? 'active' : '' %>">Finances</a>
       <a href="/salaires" class="nav-link <%= activeNav === 'salaires' ? 'active' : '' %>">Salaires</a>
       <a href="/depenses" class="nav-link <%= activeNav === 'depenses' ? 'active' : '' %>">Depenses</a>
+      <a href="/retraits-promoteur" class="nav-link <%= activeNav === 'retraits' ? 'active' : '' %>">Retraits promoteur</a>
       <a href="/tresorerie" class="nav-link <%= activeNav === 'tresorerie' ? 'active' : '' %>">Tresorerie</a>
-      <a href="/utilisateurs" class="nav-link <%= activeNav === 'users' ? 'active' : '' %>">Utilisateurs & Roles</a>
+      <% if (!(currentUser && String(currentUser.email || '').toLowerCase() === 'demo@gmail.com')) { %>
+        <a href="/utilisateurs" class="nav-link <%= activeNav === 'users' ? 'active' : '' %>">Utilisateurs & Roles</a>
+      <% } %>
       <a href="/rapports" class="nav-link <%= activeNav === 'rapports' ? 'active' : '' %>">Rapports</a>
       <a href="/sync-status" class="nav-link <%= activeNav === 'sync-status' ? 'active' : '' %>">Etat synchronisation</a>
       <a href="/administration" class="nav-link <%= activeNav === 'administration' ? 'active' : '' %>">Administration</a>

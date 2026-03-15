@@ -92,6 +92,15 @@ function convertQuestionMarksToPg(sql) {
 }
 
 async function exec(sql, params = []) {
+  const isDesktop = String(process.env.ELECTRON_DESKTOP || "").trim() === "1";
+  if (isDesktop) {
+    const raw = String(sql || "").trim();
+    const writePattern = /\b(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE)\b/i;
+    if (writePattern.test(raw)) {
+      throw new Error("Direct PostgreSQL writes are blocked in desktop mode. Use SQLite + sync.");
+    }
+  }
+
   const rewritten = rewriteSqliteSqlToPostgres(sql);
   if (!rewritten || !rewritten.trim()) {
     return { rows: [], rowCount: 0 };

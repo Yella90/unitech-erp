@@ -25,6 +25,42 @@
   </div>
 
   <div class="rounded-xl border border-slate-200 bg-white p-4">
+    <h2 class="text-base font-semibold text-slate-900">Diagnostic</h2>
+    <% const canManualSync = d.mode !== 'postgres' && d.centralConfigured && d.connected; %>
+    <div class="mt-2 text-sm text-slate-600">
+      <p>Central configure: <strong><%= d.centralConfigured ? 'oui' : 'non' %></strong></p>
+      <p>Derniere erreur: <strong><%= d.lastError || '-' %></strong></p>
+      <p>Derniere sync manuelle: <strong><%= fmtDateTime(d.manualSyncAt) %></strong></p>
+    </div>
+    <form class="mt-3" method="post" action="/sync-status/sync-now">
+      <button
+        type="submit"
+        class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+        <%= canManualSync ? '' : 'disabled' %>
+        data-sync-button
+      >
+        Lancer une synchronisation
+      </button>
+      <% if (!canManualSync) { %>
+        <p class="mt-2 text-xs text-slate-500">Sync manuelle indisponible (central hors ligne ou mode serveur).</p>
+      <% } %>
+    </form>
+  </div>
+
+  <script>
+    (function () {
+      const btn = document.querySelector("[data-sync-button]");
+      if (!btn) return;
+      const form = btn.closest("form");
+      if (!form) return;
+      form.addEventListener("submit", () => {
+        btn.disabled = true;
+        btn.textContent = "Synchronisation en cours...";
+      });
+    })();
+  </script>
+
+  <div class="rounded-xl border border-slate-200 bg-white p-4">
     <h2 class="text-base font-semibold text-slate-900">Tables surveillees</h2>
     <p class="mt-2 text-sm text-slate-600"><%= (d.tables || []).join(', ') || '-' %></p>
   </div>
@@ -48,6 +84,54 @@
           <% }) %>
           <% if (!d.pullState || !d.pullState.length) { %>
             <tr><td class="py-3 text-slate-500" colspan="2">Aucune synchronisation pull enregistree.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-slate-200 bg-white p-4">
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="text-base font-semibold text-slate-900">Progression par table</h2>
+      <button id="sync-refresh-btn" type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Refresh</button>
+    </div>
+    <div class="mt-3 overflow-x-auto">
+      <%
+        const tableQueueMap = {};
+        (d.tableQueue || []).forEach((row) => { tableQueueMap[row.table_name] = row; });
+        const pullMap = {};
+        (d.pullState || []).forEach((row) => { pullMap[row.table_name] = row; });
+        const tableList = (d.tables || []).length ? d.tables : Object.keys(tableQueueMap);
+      %>
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="border-b border-slate-200 text-left text-slate-500">
+            <th class="py-2 pr-4">Table</th>
+            <th class="py-2 pr-4">En attente</th>
+            <th class="py-2 pr-4">Echecs</th>
+            <th class="py-2 pr-4">Synchronises</th>
+            <th class="py-2 pr-4">Progression</th>
+            <th class="py-2 pr-4">Dernier pull</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% tableList.forEach((name) => { %>
+            <% const qrow = tableQueueMap[name] || {}; %>
+            <% const prow = pullMap[name] || {}; %>
+            <% const total = Number(qrow.total || 0); %>
+            <% const synced = Number(qrow.synced || 0); %>
+            <% const pct = total > 0 ? Math.round((synced / total) * 100) : 0; %>
+            <tr class="border-b border-slate-100">
+              <td class="py-2 pr-4 font-medium text-slate-800"><%= name %></td>
+              <td class="py-2 pr-4 text-amber-700"><%= Number(qrow.pending || 0) %></td>
+              <td class="py-2 pr-4 text-rose-700"><%= Number(qrow.failed || 0) %></td>
+              <td class="py-2 pr-4 text-emerald-700"><%= Number(qrow.synced || 0) %></td>
+              <td class="py-2 pr-4 text-slate-600"><%= pct %>%</td>
+              <td class="py-2 pr-4 text-slate-600"><%= fmtDateTime(prow.last_pulled_at) %></td>
+            </tr>
+          <% }) %>
+          <% if (!tableList || !tableList.length) { %>
+            <tr><td class="py-3 text-slate-500" colspan="6">Aucune donnee de progression.</td></tr>
           <% } %>
         </tbody>
       </table>
@@ -85,3 +169,61 @@
     </div>
   </div>
 </section>
+
+<script>
+  (function () {
+    const btn = document.getElementById("sync-refresh-btn");
+    const tbody = document.querySelector("table tbody");
+    if (!btn || !tbody) return;
+    const fmtDateTime = (value) => {
+      if (!value) return "-";
+      try {
+        return new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+      } catch (_) {
+        return value;
+      }
+    };
+    const renderRows = (details) => {
+      const tableQueue = details.tableQueue || [];
+      const pullState = details.pullState || [];
+      const tableQueueMap = {};
+      tableQueue.forEach((row) => { tableQueueMap[row.table_name] = row; });
+      const pullMap = {};
+      pullState.forEach((row) => { pullMap[row.table_name] = row; });
+      const tables = (details.tables || []).length ? details.tables : Object.keys(tableQueueMap);
+      const rows = tables.map((name) => {
+        const qrow = tableQueueMap[name] || {};
+        const prow = pullMap[name] || {};
+        const total = Number(qrow.total || 0);
+        const synced = Number(qrow.synced || 0);
+        const pct = total > 0 ? Math.round((synced / total) * 100) : 0;
+        return `
+          <tr class="border-b border-slate-100">
+            <td class="py-2 pr-4 font-medium text-slate-800">${name}</td>
+            <td class="py-2 pr-4 text-amber-700">${Number(qrow.pending || 0)}</td>
+            <td class="py-2 pr-4 text-rose-700">${Number(qrow.failed || 0)}</td>
+            <td class="py-2 pr-4 text-emerald-700">${Number(qrow.synced || 0)}</td>
+            <td class="py-2 pr-4 text-slate-600">${pct}%</td>
+            <td class="py-2 pr-4 text-slate-600">${fmtDateTime(prow.last_pulled_at)}</td>
+          </tr>
+        `;
+      }).join("");
+      tbody.innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="6">Aucune donnee de progression.</td></tr>`;
+    };
+    const refresh = async () => {
+      btn.disabled = true;
+      btn.textContent = "Refresh...";
+      try {
+        const res = await fetch("/sync-status/data");
+        const data = await res.json();
+        if (data && data.details) renderRows(data.details);
+      } catch (_) {
+        // ignore
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Refresh";
+      }
+    };
+    btn.addEventListener("click", refresh);
+  })();
+</script>

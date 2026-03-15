@@ -56,7 +56,8 @@ exports.login = async (req, res) => {
       school_id: user.school_id,
       school_name: user.school_name,
       subscription_plan: user.subscription_plan,
-      school_is_active: user.school_is_active
+      school_is_active: user.school_is_active,
+      email: user.email
     };
 
     const shouldBootstrap = RealtimeSyncService.isEnabled();

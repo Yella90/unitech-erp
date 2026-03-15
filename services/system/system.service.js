@@ -985,6 +985,13 @@ const SystemService = {
   ),
   deleteDepense: async (schoolId, id) => run("DELETE FROM depenses WHERE school_id = ? AND id = ?", [schoolId, id]),
 
+  listRetraitsPromoteur: async (schoolId) => all("SELECT * FROM retraits_promoteur WHERE school_id = ? ORDER BY created_at DESC", [schoolId]),
+  createRetraitPromoteur: async (schoolId, payload) => run(
+    "INSERT INTO retraits_promoteur (school_id, montant, date_retrait, motif, valide_par) VALUES (?, ?, ?, ?, ?)",
+    [schoolId, Number(payload.montant) || 0, payload.date_retrait || null, payload.motif || null, payload.valide_par || null]
+  ),
+  deleteRetraitPromoteur: async (schoolId, id) => run("DELETE FROM retraits_promoteur WHERE school_id = ? AND id = ?", [schoolId, id]),
+
   getFinanceSummary: async (schoolId, options = {}) => {
     const scope = await SystemService.resolveFinanceScope(schoolId, options);
     const payFilter = buildScopeClause(scope, "COALESCE(date_payement, created_at)");

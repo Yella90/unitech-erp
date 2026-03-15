@@ -199,15 +199,71 @@ async function setTriggersDisabled(value) {
 }
 
 async function getLocalSchoolIds() {
-  const rows = await all("SELECT id FROM schools ORDER BY id ASC");
-  return (rows || [])
-    .map((r) => Number(r.id))
-    .filter((n) => Number.isFinite(n) && n > 0);
+  const rows = await all("SELECT id, central_school_id FROM schools ORDER BY id ASC");
+  const ids = new Set();
+  for (const row of rows || []) {
+    const localId = Number(row.id);
+    const centralId = Number(row.central_school_id);
+    if (Number.isFinite(centralId) && centralId > 0) {
+      ids.add(centralId);
+    } else if (Number.isFinite(localId) && localId > 0) {
+      ids.add(localId);
+    }
+  }
+  return Array.from(ids);
 }
 
 async function getLocalColumns(tableName) {
   const rows = await all(`PRAGMA table_info(${tableName})`);
   return (rows || []).map((r) => String(r.name || "").trim()).filter(Boolean);
+}
+
+async function resolveCentralSchoolId(localSchoolId) {
+  const localValue = Number(localSchoolId || 0);
+  if (!Number.isFinite(localValue) || localValue <= 0) return null;
+  const row = await get("SELECT central_school_id FROM schools WHERE id = ? LIMIT 1", [localValue]);
+  const centralValue = Number(row && row.central_school_id);
+  if (Number.isFinite(centralValue) && centralValue > 0) return centralValue;
+  return localValue;
+}
+
+async function resolveLocalSchoolId(centralSchoolId) {
+  const centralValue = Number(centralSchoolId || 0);
+  if (!Number.isFinite(centralValue) || centralValue <= 0) return null;
+  const row = await get("SELECT id FROM schools WHERE central_school_id = ? LIMIT 1", [centralValue]);
+  if (row && Number(row.id) > 0) return Number(row.id);
+  const countRow = await get("SELECT COUNT(*) AS c FROM schools");
+  if (Number(countRow && countRow.c) === 1) {
+    const onlyRow = await get("SELECT id FROM schools ORDER BY id ASC LIMIT 1");
+    if (onlyRow && Number(onlyRow.id) > 0) return Number(onlyRow.id);
+  }
+  const fallback = await get("SELECT id FROM schools WHERE id = ? LIMIT 1", [centralValue]);
+  if (fallback && Number(fallback.id) > 0) return Number(fallback.id);
+  return null;
+}
+
+async function resolveLocalAffectationIdFromCentralId(centralAffectationId) {
+  const centralValue = Number(centralAffectationId || 0);
+  if (!Number.isFinite(centralValue) || centralValue <= 0) return null;
+  const p = getPool();
+  const q = await p.query("SELECT uuid FROM affectations WHERE id = $1 LIMIT 1", [centralValue]);
+  const uuid = q.rows && q.rows[0] ? String(q.rows[0].uuid || "").trim() : "";
+  if (!uuid) return null;
+  const local = await get("SELECT id FROM affectations WHERE uuid = ? LIMIT 1", [uuid]);
+  if (local && Number(local.id) > 0) return Number(local.id);
+  return null;
+}
+
+async function resolveLocalEleveIdFromCentralId(centralEleveId) {
+  const centralValue = Number(centralEleveId || 0);
+  if (!Number.isFinite(centralValue) || centralValue <= 0) return null;
+  const p = getPool();
+  const q = await p.query("SELECT uuid FROM eleves WHERE id = $1 LIMIT 1", [centralValue]);
+  const uuid = q.rows && q.rows[0] ? String(q.rows[0].uuid || "").trim() : "";
+  if (!uuid) return null;
+  const local = await get("SELECT id FROM eleves WHERE uuid = ? LIMIT 1", [uuid]);
+  if (local && Number(local.id) > 0) return Number(local.id);
+  return null;
 }
 
 async function getLocalByUuid(tableName, uuid) {
@@ -220,6 +276,52 @@ async function getCentralByUuid(tableName, uuid) {
   const p = getPool();
   const q = await p.query(`SELECT * FROM ${tableName} WHERE uuid = $1 LIMIT 1`, [uuid]);
   return q.rows && q.rows[0] ? q.rows[0] : null;
+}
+
+async function findCentralByNaturalKey(tableName, localRow) {
+  const p = getPool();
+  const normalizedSchoolId = await resolveCentralSchoolId(localRow.school_id);
+  if (tableName === "classes" && normalizedSchoolId && localRow.nom) {
+    const q = await p.query(
+      `SELECT * FROM classes WHERE school_id = $1 AND lower(trim(nom)) = lower(trim($2)) LIMIT 1`,
+      [normalizedSchoolId, localRow.nom]
+    );
+    return q.rows && q.rows[0] ? q.rows[0] : null;
+  }
+  if (tableName === "eleves" && normalizedSchoolId && localRow.matricule) {
+    const q = await p.query(
+      `SELECT * FROM eleves WHERE school_id = $1 AND lower(trim(matricule)) = lower(trim($2)) LIMIT 1`,
+      [normalizedSchoolId, localRow.matricule]
+    );
+    return q.rows && q.rows[0] ? q.rows[0] : null;
+  }
+  if (tableName === "matieres" && normalizedSchoolId && localRow.nom) {
+    const q = await p.query(
+      `SELECT * FROM matieres WHERE school_id = $1 AND lower(trim(nom)) = lower(trim($2)) LIMIT 1`,
+      [normalizedSchoolId, localRow.nom]
+    );
+    return q.rows && q.rows[0] ? q.rows[0] : null;
+  }
+  if (tableName === "notifications" && normalizedSchoolId && localRow.unique_key) {
+    const q = await p.query(
+      `SELECT * FROM notifications WHERE school_id = $1 AND unique_key = $2 LIMIT 1`,
+      [normalizedSchoolId, localRow.unique_key]
+    );
+    return q.rows && q.rows[0] ? q.rows[0] : null;
+  }
+  return null;
+}
+
+async function remapLocalUuid(tableName, oldUuid, newUuid) {
+  if (!oldUuid || !newUuid || oldUuid === newUuid) return;
+  const existing = await get(`SELECT id FROM ${tableName} WHERE uuid = ? LIMIT 1`, [newUuid]);
+  if (existing && Number(existing.id) > 0) {
+    // A row already uses the target uuid, drop the old duplicate to avoid UNIQUE errors.
+    await run(`DELETE FROM ${tableName} WHERE uuid = ?`, [oldUuid]);
+  } else {
+    await run(`UPDATE ${tableName} SET uuid = ? WHERE uuid = ?`, [newUuid, oldUuid]);
+  }
+  await run(`UPDATE sync_queue SET uuid = ? WHERE table_name = ? AND uuid = ?`, [newUuid, tableName, oldUuid]);
 }
 
 function filterPayloadByColumns(payload, columns, options = {}) {
@@ -242,12 +344,16 @@ async function upsertCentralFromLocal(tableName, localRow, op) {
   const p = getPool();
   const cols = await getCentralColumns(tableName);
   if (!cols.has("uuid")) return;
-  const centralRow = await getCentralByUuid(tableName, localRow.uuid);
+  const normalizedLocalRow = cols.has("school_id") && localRow && localRow.school_id
+    ? { ...localRow, school_id: await resolveCentralSchoolId(localRow.school_id) }
+    : localRow;
+  const centralRow = await getCentralByUuid(tableName, normalizedLocalRow.uuid);
   const tsCol = pickTimestampColumn(cols);
 
   if (op === "delete") {
     if (!centralRow) return;
-    const deletedAt = localRow.deleted_at || localRow.updated_at || new Date().toISOString();
+    const rawDeletedAt = normalizedLocalRow.deleted_at || normalizedLocalRow.updated_at || new Date().toISOString();
+    const deletedAt = normalizeTimestampForPg(rawDeletedAt) || new Date().toISOString();
     const sets = [];
     const values = [];
     if (cols.has("deleted_at")) {
@@ -268,7 +374,23 @@ async function upsertCentralFromLocal(tableName, localRow, op) {
   }
 
   if (!centralRow) {
-    const payload = filterPayloadByColumns(localRow, cols, { skipKeys: ["id"] });
+    const natural = await findCentralByNaturalKey(tableName, normalizedLocalRow);
+    if (natural && natural.uuid) {
+      const payload = filterPayloadByColumns(normalizedLocalRow, cols, { skipKeys: ["id", "uuid"] });
+      const keys = Object.keys(payload);
+      if (keys.length) {
+        const setSql = keys.map((k, i) => `${k} = $${i + 1}`).join(",");
+        const values = keys.map((k) => payload[k]);
+        values.push(natural.uuid);
+        await p.query(
+          `UPDATE ${tableName} SET ${setSql} WHERE uuid = $${values.length}`,
+          values
+        );
+      }
+      await remapLocalUuid(tableName, normalizedLocalRow.uuid, natural.uuid);
+      return;
+    }
+    const payload = filterPayloadByColumns(normalizedLocalRow, cols, { skipKeys: ["id"] });
     const keys = Object.keys(payload);
     if (!keys.length) return;
     const placeholders = keys.map((_, i) => `$${i + 1}`);
@@ -280,14 +402,31 @@ async function upsertCentralFromLocal(tableName, localRow, op) {
     return;
   }
 
-  const localUpdated = dateScore(localRow.updated_at || localRow.created_at);
+  const localUpdated = dateScore(normalizedLocalRow.updated_at || normalizedLocalRow.created_at);
   const centralUpdated = dateScore((tsCol && centralRow[tsCol]) || centralRow.updated_at || centralRow.created_at);
   if (localUpdated < centralUpdated) {
     // Central is newer: local will be refreshed by pull step.
     return;
   }
 
-  const payload = filterPayloadByColumns(localRow, cols, { skipKeys: ["id"] });
+  const natural = await findCentralByNaturalKey(tableName, normalizedLocalRow);
+  if (natural && natural.uuid && natural.uuid !== centralRow.uuid) {
+    const payload = filterPayloadByColumns(normalizedLocalRow, cols, { skipKeys: ["id", "uuid"] });
+    const keys = Object.keys(payload);
+    if (keys.length) {
+      const setSql = keys.map((k, i) => `${k} = $${i + 1}`).join(",");
+      const values = keys.map((k) => payload[k]);
+      values.push(natural.uuid);
+      await p.query(
+        `UPDATE ${tableName} SET ${setSql} WHERE uuid = $${values.length}`,
+        values
+      );
+    }
+    await remapLocalUuid(tableName, normalizedLocalRow.uuid, natural.uuid);
+    return;
+  }
+
+  const payload = filterPayloadByColumns(normalizedLocalRow, cols, { skipKeys: ["id"] });
   const keys = Object.keys(payload);
   if (!keys.length) return;
   const setSql = keys.map((k, i) => `${k} = $${i + 1}`).join(",");
@@ -307,9 +446,68 @@ async function upsertLocalFromCentral(tableName, centralRow) {
     if (centralRow[key] !== undefined) payload[key] = centralRow[key];
   }
   if (!payload.uuid) return;
+  if (tableName === "paiements") {
+    const resolvedEleveId = await resolveLocalEleveIdFromCentralId(payload.eleve_id);
+    if (!resolvedEleveId) return;
+    payload.eleve_id = resolvedEleveId;
+  }
+  if (tableName === "emplois") {
+    const resolvedAffectationId = await resolveLocalAffectationIdFromCentralId(payload.affectation_id);
+    if (!resolvedAffectationId) return;
+    payload.affectation_id = resolvedAffectationId;
+  }
+  if (payload.school_id !== undefined) {
+    const mappedSchoolId = await resolveLocalSchoolId(payload.school_id);
+    if (!mappedSchoolId) {
+      return;
+    }
+    payload.school_id = mappedSchoolId;
+  }
 
   const existing = await getLocalByUuid(tableName, payload.uuid);
   if (!existing) {
+    if (tableName === "classes" && payload.school_id && payload.nom) {
+      const sameByName = await get(
+        `SELECT * FROM classes WHERE school_id = ? AND lower(trim(nom)) = lower(trim(?)) LIMIT 1`,
+        [payload.school_id, payload.nom]
+      );
+      if (sameByName) {
+        const keys = Object.keys(payload).filter((k) => k !== "id");
+        const setSql = keys.map((k) => `${k} = ?`).join(",");
+        const values = keys.map((k) => payload[k]);
+        values.push(sameByName.uuid);
+        await run(`UPDATE classes SET ${setSql} WHERE uuid = ?`, values);
+        return;
+      }
+    }
+    if (tableName === "matieres" && payload.school_id && payload.nom) {
+      const sameByName = await get(
+        `SELECT * FROM matieres WHERE school_id = ? AND lower(trim(nom)) = lower(trim(?)) LIMIT 1`,
+        [payload.school_id, payload.nom]
+      );
+      if (sameByName) {
+        const keys = Object.keys(payload).filter((k) => k !== "id");
+        const setSql = keys.map((k) => `${k} = ?`).join(",");
+        const values = keys.map((k) => payload[k]);
+        values.push(sameByName.uuid);
+        await run(`UPDATE matieres SET ${setSql} WHERE uuid = ?`, values);
+        return;
+      }
+    }
+    if (tableName === "notifications" && payload.school_id && payload.unique_key) {
+      const sameByKey = await get(
+        `SELECT * FROM notifications WHERE school_id = ? AND unique_key = ? LIMIT 1`,
+        [payload.school_id, payload.unique_key]
+      );
+      if (sameByKey) {
+        const keys = Object.keys(payload).filter((k) => k !== "id");
+        const setSql = keys.map((k) => `${k} = ?`).join(",");
+        const values = keys.map((k) => payload[k]);
+        values.push(sameByKey.uuid);
+        await run(`UPDATE notifications SET ${setSql} WHERE uuid = ?`, values);
+        return;
+      }
+    }
     const keys = Object.keys(payload);
     const placeholders = keys.map(() => "?");
     const values = keys.map((k) => payload[k]);
@@ -465,6 +663,20 @@ async function pullFromCentral() {
 
   await setTriggersDisabled(true);
   try {
+    if (localSqlite) {
+      await run("PRAGMA foreign_keys = OFF");
+    }
+    const forceFullPull = String(process.env.SYNC_FORCE_FULL_PULL || "0").trim() === "1";
+    if (forceFullPull) {
+      const marker = await get("SELECT last_pulled_at FROM sync_state WHERE table_name = '__full_pull_done' LIMIT 1");
+      if (!marker) {
+        for (const tableName of TABLES) {
+          // eslint-disable-next-line no-await-in-loop
+          await setLastPulledAt(tableName, "1970-01-01T00:00:00.000Z");
+        }
+        await setLastPulledAt("__full_pull_done", new Date().toISOString());
+      }
+    }
     for (const tableName of TABLES) {
       // eslint-disable-next-line no-await-in-loop
       const cols = await getCentralColumns(tableName);
@@ -519,6 +731,9 @@ async function pullFromCentral() {
       }
     }
   } finally {
+    if (localSqlite) {
+      await run("PRAGMA foreign_keys = ON");
+    }
     await setTriggersDisabled(false);
   }
 }
@@ -615,6 +830,28 @@ async function getRecentQueueErrors(schoolId, limit = 20) {
   );
 }
 
+async function getQueueStatsByTable(schoolId) {
+  const schoolValue = Number(schoolId || 0);
+  const hasSchool = Number.isFinite(schoolValue) && schoolValue > 0;
+  const whereSql = hasSchool ? "WHERE school_id = ?" : "";
+  const args = hasSchool ? [schoolValue] : [];
+  return all(
+    `
+      SELECT
+        table_name,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
+        SUM(CASE WHEN status = 'synced' THEN 1 ELSE 0 END) AS synced,
+        COUNT(*) AS total
+      FROM sync_queue
+      ${whereSql}
+      GROUP BY table_name
+      ORDER BY table_name ASC
+    `,
+    args
+  );
+}
+
 async function getLastPulledState() {
   return all(
     `
@@ -626,18 +863,25 @@ async function getLastPulledState() {
 }
 
 async function getDetailedStatus(schoolId) {
-  const [queue, recentErrors, pullState] = await Promise.all([
+  const [queue, recentErrors, pullState, tableQueue] = await Promise.all([
     getQueueStats(schoolId),
     getRecentQueueErrors(schoolId, 15),
-    getLastPulledState()
+    getLastPulledState(),
+    getQueueStatsByTable(schoolId)
   ]);
+  const manualRow = await get(
+    "SELECT last_pulled_at FROM sync_state WHERE table_name = ? LIMIT 1",
+    ["__manual_sync_at"]
+  );
 
   return {
     ...getStatusSnapshot(),
     tables: [...TABLES],
     queue,
     recentErrors: recentErrors || [],
-    pullState: pullState || []
+    pullState: pullState || [],
+    tableQueue: tableQueue || [],
+    manualSyncAt: manualRow && manualRow.last_pulled_at ? manualRow.last_pulled_at : null
   };
 }
 

@@ -64,6 +64,10 @@ router.get("/depenses", ctrl.depensesPage);
 router.post("/depenses", ctrl.depensesCreate);
 router.post("/depenses/delete/:id", ctrl.depensesDelete);
 
+router.get("/retraits-promoteur", ctrl.retraitsPromoteurPage);
+router.post("/retraits-promoteur", ctrl.retraitsPromoteurCreate);
+router.post("/retraits-promoteur/delete/:id", ctrl.retraitsPromoteurDelete);
+
 router.get("/tresorerie", requireFeature("stats_advanced"), ctrl.tresoreriePage);
 
 router.get("/utilisateurs", requireRole("school_admin"), ctrl.utilisateursPage);
@@ -72,6 +76,8 @@ router.post("/utilisateurs/delete/:id", requireRole("school_admin"), ctrl.utilis
 
 router.get("/rapports", requireFeature("stats_advanced"), ctrl.rapportsPage);
 router.get("/sync-status", ctrl.syncStatusPage);
+router.get("/sync-status/data", ctrl.syncStatusData);
+router.post("/sync-status/sync-now", requireRole("school_admin"), ctrl.syncNow);
 
 router.get("/transfers/request/:matricule", checkRole("admin_ecole"), transferCtrl.requestForm);
 router.post("/transfers/request", checkRole("admin_ecole"), transferCtrl.requestCreate);

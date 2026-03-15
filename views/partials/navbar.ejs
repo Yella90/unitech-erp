@@ -34,7 +34,7 @@
 
       <% const sync = realtimeSyncStatus || {}; %>
       <% const isSqliteMode = sync.mode === "sqlite"; %>
-      <% const dbLabel = !isSqliteMode ? "PostgreSQL (serveur)" : (!sync.centralConfigured ? "SQLite local uniquement" : (sync.connected ? "SQLite + PostgreSQL connecte" : "SQLite local (PostgreSQL hors ligne)")); %>
+      <% const dbLabel = !isSqliteMode ? "Mode serveur (PostgreSQL)" : (!sync.centralConfigured ? "Mode local (SQLite)" : (sync.connected ? "Mode local + sync (central connecte)" : "Mode local (central hors ligne)")); %>
       <% const dbBadgeClass = !isSqliteMode ? "bg-emerald-50 text-emerald-700 border-emerald-200" : (!sync.centralConfigured ? "bg-slate-100 text-slate-700 border-slate-300" : (sync.connected ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200")); %>
       <span class="hidden lg:inline-flex rounded-xl border px-3 py-2 text-xs font-semibold <%= dbBadgeClass %>"><%= dbLabel %></span>
 

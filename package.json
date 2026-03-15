@@ -70,20 +70,31 @@
     "files": [
       "electron/**/*",
       "app.js",
+      "auth/**/*",
+      "config/**/*",
+      "server/**/*",
       "routes/**/*",
       "controllers/**/*",
+      "middlewares/**/*",
       "models/**/*",
+      "services/**/*",
+      "utils/**/*",
+      "partials/**/*",
+      "subscription/**/*",
+      "superadmin/**/*",
       "views/**/*",
       "public/**/*",
       "!tests/**",
       "!docs/**",
       "!dist/**",
-      "!database.sqlite",
-      "!.env"
+      "!database.sqlite"
     ],
     "directories": {
       "buildResources": "build"
     },
+    "extraResources": [
+      ".env"
+    ],
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico"

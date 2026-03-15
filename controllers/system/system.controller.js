@@ -640,6 +640,24 @@ exports.depensesDelete = async (req, res) => {
   res.redirect("/depenses");
 };
 
+exports.retraitsPromoteurPage = async (req, res) => {
+  const retraits = await SystemService.listRetraitsPromoteur(req.school_id);
+  res.render("system/retraits-promoteur", { retraits });
+};
+exports.retraitsPromoteurCreate = async (req, res) => {
+  try {
+    await SystemService.createRetraitPromoteur(req.school_id, req.body);
+    req.flash("success", "Retrait enregistre");
+  } catch (err) {
+    req.flash("error", err.message);
+  }
+  res.redirect("/retraits-promoteur");
+};
+exports.retraitsPromoteurDelete = async (req, res) => {
+  await SystemService.deleteRetraitPromoteur(req.school_id, parseId(req));
+  res.redirect("/retraits-promoteur");
+};
+
 exports.tresoreriePage = async (req, res) => {
   const period = String(req.query.period || "annual").trim().toLowerCase() === "monthly" ? "monthly" : "annual";
   const month = String(req.query.month || "").trim();
@@ -648,10 +666,18 @@ exports.tresoreriePage = async (req, res) => {
 };
 
 exports.utilisateursPage = async (req, res) => {
+  if (req.currentUser && String(req.currentUser.email || "").toLowerCase() === "demo@gmail.com") {
+    req.flash("warning", "Gestion des utilisateurs desactivee pour le compte demo.");
+    return res.redirect("/dashboard");
+  }
   const users = await SystemService.listUsers(req.school_id);
   res.render("system/utilisateurs", { users });
 };
 exports.utilisateursCreate = async (req, res) => {
+  if (req.currentUser && String(req.currentUser.email || "").toLowerCase() === "demo@gmail.com") {
+    req.flash("warning", "Gestion des utilisateurs desactivee pour le compte demo.");
+    return res.redirect("/utilisateurs");
+  }
   try {
     if (!req.body.password || req.body.password.length < 8) {
       throw new Error("Mot de passe minimum 8 caracteres");
@@ -670,6 +696,10 @@ exports.utilisateursCreate = async (req, res) => {
   res.redirect("/utilisateurs");
 };
 exports.utilisateursDelete = async (req, res) => {
+  if (req.currentUser && String(req.currentUser.email || "").toLowerCase() === "demo@gmail.com") {
+    req.flash("warning", "Gestion des utilisateurs desactivee pour le compte demo.");
+    return res.redirect("/utilisateurs");
+  }
   await SystemService.deleteUser(req.school_id, parseId(req));
   res.redirect("/utilisateurs");
 };
@@ -682,6 +712,41 @@ exports.rapportsPage = async (req, res) => {
 exports.syncStatusPage = async (req, res) => {
   const details = await RealtimeSyncService.getDetailedStatus(req.school_id);
   res.render("system/sync-status", { details });
+};
+exports.syncStatusData = async (req, res) => {
+  try {
+    const details = await RealtimeSyncService.getDetailedStatus(req.school_id);
+    return res.json({ ok: true, details });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: String(err.message || err) });
+  }
+};
+
+exports.syncNow = async (req, res) => {
+  try {
+    if (!RealtimeSyncService.isEnabled()) {
+      req.flash("warning", "Sync indisponible: central non configure ou mode serveur.");
+      return res.redirect("/sync-status");
+    }
+    const online = await RealtimeSyncService.canReachCentral();
+    if (!online) {
+      req.flash("warning", "Central hors ligne, reessayez plus tard.");
+      return res.redirect("/sync-status");
+    }
+    await RealtimeSyncService.syncTick();
+    await run(
+      `
+        INSERT INTO sync_state (table_name, last_pulled_at)
+        VALUES (?, ?)
+        ON CONFLICT(table_name) DO UPDATE SET last_pulled_at = excluded.last_pulled_at
+      `,
+      ["__manual_sync_at", new Date().toISOString()]
+    );
+    req.flash("success", "Synchronisation lancee avec succes.");
+  } catch (err) {
+    req.flash("error", err.message || "Erreur pendant la synchronisation.");
+  }
+  return res.redirect("/sync-status");
 };
 
 exports.notificationsPage = async (req, res) => {

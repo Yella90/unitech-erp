@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><%- include('../../partials/head') %><title>Retraits promoteur</title></head>
+<body class="bg-gray-100 p-6">
+<div class="max-w-5xl mx-auto bg-white p-6 rounded shadow">
+  <%
+    const rows = Array.isArray(retraits) ? retraits : [];
+    const totalRetraits = rows.reduce((sum, r) => sum + Number(r.montant || 0), 0);
+  %>
+
+  <h1 class="text-2xl font-bold mb-4">Retraits promoteur</h1>
+  <p class="text-sm text-gray-600 mb-4">Total retraits: <strong><%= Number(totalRetraits || 0).toLocaleString('fr-FR') %> FCFA</strong></p>
+
+  <form method="POST" action="/retraits-promoteur" class="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4">
+    <input class="border p-2 rounded" type="number" name="montant" placeholder="Montant" required>
+    <input class="border p-2 rounded" type="date" name="date_retrait">
+    <input class="border p-2 rounded" name="motif" placeholder="Motif">
+    <input class="border p-2 rounded" name="valide_par" placeholder="Valide par">
+    <button class="bg-blue-600 text-white rounded">Ajouter</button>
+  </form>
+
+  <table class="w-full text-sm">
+    <thead>
+      <tr>
+        <th class="text-left">Montant</th>
+        <th class="text-left">Date</th>
+        <th class="text-left">Motif</th>
+        <th class="text-left">Valide par</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.forEach(r => { %>
+        <tr class="border-t">
+          <td><%= Number(r.montant || 0).toLocaleString('fr-FR') %> FCFA</td>
+          <td><%= fmtDate(r.date_retrait) %></td>
+          <td><%= r.motif || '' %></td>
+          <td><%= r.valide_par || '' %></td>
+          <td>
+            <form method="POST" action="/retraits-promoteur/delete/<%= r.id %>">
+              <button class="text-red-600">Supprimer</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!rows.length) { %>
+        <tr><td class="py-3 text-gray-500" colspan="5">Aucun retrait enregistre.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+</body>
+</html>
